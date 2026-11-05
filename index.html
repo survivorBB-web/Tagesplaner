@@ -389,7 +389,7 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
 #notif-set:not([hidden]), #upd-set:not([hidden]) { display: grid; gap: 8px; }
 /* Update: weiße 1 im roten Kreis am Zahnrad und am Knopf, Fenster in der Mitte */
 #set-btn, .upd-btn { position: relative; }
-.badge { position: absolute; right: -6px; bottom: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #E5484D; color: #fff; font: 700 11px/18px var(--font); text-align: center; box-shadow: 0 0 0 2px var(--bg); }
+.badge { position: absolute; right: -6px; bottom: -6px; min-width: 18px; height: 18px; padding: 0 6px 0 3px;   /* links weniger Abstand: die 1 wirkt sonst nach rechts verschoben */ border-radius: 999px; background: #E5484D; color: #fff; font: 700 11px/18px var(--font); text-align: center; box-shadow: 0 0 0 2px var(--bg); }
 .badge[hidden] { display: none; }
 .upd-btn .badge { right: 10px; bottom: auto; top: 50%; transform: translateY(-50%); box-shadow: none; }
 .dlg { border: 1px solid var(--hair); border-radius: 14px; background: var(--surface); color: var(--ink); padding: 20px 20px 14px; width: min(340px, calc(100vw - 32px)); box-shadow: 0 12px 40px rgb(0 0 0 / .25); }
@@ -1194,7 +1194,7 @@ $("#set-pop").addEventListener("click", e => {
 document.addEventListener("click", e => { if (!e.target.closest(".settings")) setPop(false); });
 /* Updates (nur Android-App): beim Start im Hintergrund nachsehen; gibt es eins, steht eine rote 1 am Zahnrad und am Knopf */
 const app = window.AndroidApp;
-let upd = null, updAsked = false;
+let upd = null, updAsked = false, updTimer = null;
 function updDialog(title, text, notes = [], canInstall = false) {
   $("#upd-h").textContent = title;
   $("#upd-p").textContent = text;
@@ -1214,6 +1214,7 @@ if (app) {
   window.appUpdateInfo = body => {
     let v = null;
     try { v = JSON.parse(body); } catch { }
+    clearTimeout(updTimer);
     upd = v && +v.code > app.versionCode() ? v : null;
     document.querySelectorAll("[data-upd]").forEach(b => { b.hidden = !upd; });
     const btn = $("[data-upd-check]"); btn.firstChild.textContent = "Nach Updates suchen";
@@ -1239,6 +1240,14 @@ if (app) {
     if (!e.target.closest("[data-upd-check]")) return;
     setPop(false); updAsked = true;
     $("[data-upd-check]").firstChild.textContent = "Sucht …";
+    // Spätestens nach 6 Sekunden eine Antwort zeigen, auch wenn das Netz hängt
+    clearTimeout(updTimer);
+    updTimer = setTimeout(() => {
+      if (!updAsked) return;
+      updAsked = false;
+      $("[data-upd-check]").firstChild.textContent = "Nach Updates suchen";
+      showUpdate(true);
+    }, 6000);
     app.checkUpdate();
   });
   // Nach einem Update einmal „Update erfolgreich!“ mit den Patchnotes dieser Version
