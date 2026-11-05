@@ -1346,14 +1346,14 @@ box.addEventListener("dragend", () => {
 /* Tutorial: Sprechblasen zeigen nacheinander auf die wichtigsten Stellen.
    Ziel: CSS-Selektor, mit "|" getrennte Ausweichziele (der erste vorhandene zählt). */
 const TOUR = [
-  ["#quick", "Neuer Eintrag", "Schreib hier, was ansteht. Mit Uhrzeit vorne, etwa „14:30 Zahnarzt“, wird es ein Termin in der Zeitleiste. Ohne Uhrzeit landet es unter „Ohne Uhrzeit“."],
-  ["#untimed [data-ev], #grid [data-ev]|.untimed", "Abhaken und öffnen", "Mit dem Kästchen hakst du einen Eintrag ab. Tippst du auf den Eintrag, öffnet er sich: Dort wählst du Kategorie, Uhrzeit und Dauer, teilst ihn in kleine Schritte und misst mit dem Timer, wie lange du wirklich brauchst."],
-  ["#timeline", "Zeitleiste", "Dein Tag Stunde für Stunde. Tipp auf eine freie Stelle, um dort einen Termin anzulegen. Am PC verschiebst du Termine durch Ziehen und änderst am unteren Rand die Dauer."],
-  ["#overview", "Überblick", "Was als Nächstes dran ist, wie viel du geschafft hast und deine Zeitbilanz: ob du schneller oder langsamer warst als geplant."],
-  ["#week", "Woche", "Tipp auf einen Tag, um ihn zu planen."],
-  [".nav", "Tage und Kategorien", "Mit den Pfeilen wechselst du den Tag, „Heute“ bringt dich zurück. Unter „Kategorien“ legst du Namen und Farben an. Einträge übernehmen die Farbe ihrer Kategorie."],
-  ["#todo-tab", "To-do", "Deine Liste für grobe Sachen und Gedanken, die noch keinen Platz im Tag haben. Sie ist nicht mit dem Kalender verknüpft."],
-  ["#set-btn", "Einstellungen", "Hier wählst du Hell oder Dunkel und startest dieses Tutorial jederzeit wieder."],
+  ["#quick", "Neuer Eintrag", "Hier trägst du etwas ein. Mit Uhrzeit wird es ein Termin, zum Beispiel „14:30 Zahnarzt“. Ohne Uhrzeit wird es eine Aufgabe."],
+  ["#untimed [data-ev], #grid [data-ev]|.untimed", "Abhaken und öffnen", "Tippe aufs Kästchen, wenn du fertig bist. Tippe auf den Eintrag, um ihn zu ändern. Dort gibt es auch Schritte und einen Timer."],
+  ["#timeline", "Zeitleiste", "Das ist dein Tag nach Uhrzeit. Tippe auf eine freie Stelle, um dort einen Termin anzulegen."],
+  ["#overview", "Überblick", "Hier siehst du, was als Nächstes kommt und wie viel du schon geschafft hast."],
+  ["#week", "Woche", "Tippe auf einen Tag, um ihn anzusehen."],
+  [".nav", "Tage und Kategorien", "Mit den Pfeilen gehst du einen Tag vor oder zurück. „Heute“ bringt dich zu heute. Bei „Kategorien“ gibst du deinen Einträgen Farben."],
+  ["#todo-tab", "To-do", "Eine Liste für alles, was noch keinen festen Tag hat."],
+  ["#set-btn", "Einstellungen", "Hier wechselst du zwischen Hell und Dunkel. Hier startest du auch diese Anleitung neu."],
 ];
 let tour = null;
 const tourTarget = () => TOUR[tour.i][0].split("|").map(s => document.querySelector(s)).find(Boolean);

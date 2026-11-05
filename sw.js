@@ -1,5 +1,5 @@
 // Hält die App offline bereit. Bei jedem Bau ändert build-web.ps1 die Version, dann holt sich das Handy die neuen Dateien.
-const CACHE = "tagesplaner-20261105214405";
+const CACHE = "tagesplaner-20261105215018";
 const FILES = ["./", "index.html", "manifest.webmanifest", "bricolage.woff2", "schibsted.woff2", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
