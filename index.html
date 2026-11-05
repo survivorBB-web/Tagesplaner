@@ -252,8 +252,8 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
 .sw[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 /* Lasche am rechten Rand für die To-do-Liste */
+.tabs { position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 15; display: grid; gap: 8px; justify-items: end; }
 .todo-tab {
-  position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 15;
   display: grid; justify-items: center; gap: 8px; padding: 14px 8px 12px; border-radius: 10px 0 0 10px;
   background: var(--ink); color: var(--bg); box-shadow: -4px 4px 16px rgb(0 0 0 / .12);
 }
@@ -264,7 +264,8 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
 @media (max-width: 620px) {
   body { padding: 20px 16px 96px; }
   :root { --gut: 44px; }
-  .todo-tab { top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); right: 16px; transform: none; border-radius: 999px; grid-auto-flow: column; padding: 12px 16px; }
+  .tabs { top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); right: 16px; transform: none; grid-auto-flow: column; }
+  .todo-tab { border-radius: 999px; grid-auto-flow: column; padding: 12px 16px; }
   .todo-tab span { writing-mode: horizontal-tb; transform: none; }
   .todo-tab:hover { padding-right: 16px; }
 }
@@ -366,6 +367,47 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
+/* Uhrzeit zum Eintippen: zwei Felder, dazwischen ein Doppelpunkt */
+.tin { display: inline-flex; align-items: center; gap: 2px; }
+.tin .inp { width: 46px; text-align: center; font-variant-numeric: tabular-nums; font-size: 16px; padding: 0 4px; }
+.tin b { font-weight: 600; color: var(--muted); }
+.inp.num { width: 64px; text-align: center; font-variant-numeric: tabular-nums; font-size: 16px; }
+/* Schieberegler wie bei Apple: links Uhrzeit, rechts Timer */
+.nt-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.tgl-wrap { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+.tgl-wrap span { color: var(--muted); cursor: pointer; }
+.tgl-wrap span.on { color: var(--ink); font-weight: 600; }
+.tgl { position: relative; width: 46px; height: 28px; border-radius: 999px; background: var(--line); transition: background .2s; flex: none; }
+.tgl i { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .25); transition: transform .22s cubic-bezier(.3,1.3,.5,1); }
+.tgl[aria-checked="true"] { background: var(--accent); }
+.tgl[aria-checked="true"] i { transform: translateX(18px); }
+.tgl:disabled { opacity: .45; }
+.nt-before { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+.nt-bell { display: inline-flex; align-items: center; gap: 3px; }
+.nt-bell svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 1.6; fill: none; }
+#notif-set:not([hidden]) { display: grid; gap: 8px; }
+#notif-opts:not([hidden]) { display: grid; gap: 8px; padding: 2px 2px 0; }
+#notif-opts .switch:has(input:disabled) { opacity: .5; }
+/* Uhr bei Terminen: großer Zeiger springt jede Sekunde eine Viertelumdrehung weiter */
+.ev-title svg .mh { transform-box: view-box; transform-origin: 6px 6px; animation: tick 4s infinite; }
+.ev.done .ev-title svg .mh { animation: none; }
+/* Ben wollte die kleine Uhr ausdrücklich bewegt: sie tickt auch, wenn das Gerät Animationen reduziert (kleines Symbol, keine Bewegung im Raum) */
+@media (prefers-reduced-motion: reduce) { .ev:not(.done) .ev-title svg .mh { animation: tick 4s infinite !important; } }
+@keyframes tick {
+  0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(.34,1.5,.6,1); }
+  7% { transform: rotate(90deg); animation-timing-function: linear; }
+  25% { transform: rotate(90deg); animation-timing-function: cubic-bezier(.34,1.5,.6,1); }
+  32% { transform: rotate(180deg); animation-timing-function: linear; }
+  50% { transform: rotate(180deg); animation-timing-function: cubic-bezier(.34,1.5,.6,1); }
+  57% { transform: rotate(270deg); animation-timing-function: linear; }
+  75% { transform: rotate(270deg); animation-timing-function: cubic-bezier(.34,1.5,.6,1); }
+  82% { transform: rotate(360deg); animation-timing-function: linear; }
+  100% { transform: rotate(360deg); }
+}
+/* Aufgaben-Fach: Kategorie statt Stichwort, Uhrzeit dahinter */
+.td .new select { min-width: 0; border: 0; background: transparent; font: inherit; color: var(--ink); padding: 10px 6px; border-radius: 8px; }
+.td .when { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; margin-left: 6px; white-space: nowrap; }
+
 /* Tutorial: abgedunkelter Hintergrund, Ring um die erklärte Stelle, Sprechblase mit Pfeil */
 .tour { position: fixed; inset: 0; z-index: 100; }
 .tour-dim { position: fixed; inset: 0; background: rgb(10 12 16 / .55); pointer-events: none; }
@@ -393,6 +435,14 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
           <div class="pop" id="set-pop" hidden>
             <span class="ov-label">Darstellung</span>
             <div class="seg" role="group" aria-label="Darstellung"><button data-theme-set="light">Hell</button><button data-theme-set="dark">Dunkel</button><button data-theme-set="">Wie System</button></div>
+            <div id="notif-set" hidden>
+              <span class="ov-label">Benachrichtigungen</span>
+              <button class="soft-btn" data-notif-open aria-expanded="false" aria-controls="notif-opts">Benachrichtigungen</button>
+              <div id="notif-opts" hidden>
+                <label class="switch"><input type="checkbox" id="nt-daily"> Tägliche Benachrichtigung</label>
+                <label class="switch"><input type="checkbox" id="nt-motiv"> Motivation</label>
+              </div>
+            </div>
             <span class="ov-label">Hilfe</span>
             <button class="soft-btn" data-tour-start>Tutorial starten</button>
           </div>
@@ -448,7 +498,29 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
     </div>
   </div>
 </aside>
-<button class="todo-tab" id="todo-tab" aria-controls="td" aria-expanded="false"><svg class="ico" viewBox="0 0 16 16"><path d="M3 4.5h1M6.5 4.5H13M3 8h1M6.5 8H13M3 11.5h1M6.5 11.5H13"/></svg><span>To-do</span><b id="todo-open" hidden></b></button>
+<aside class="drawer td" id="af" aria-label="Aufgaben">
+  <div class="panel-head">
+    <h2>Aufgaben</h2>
+    <button class="icon-btn" data-close="af" aria-label="Aufgaben schließen"><svg class="ico" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div class="panel-body">
+    <div class="wrap">
+      <div class="meta" id="af-count"></div>
+      <form class="new" id="af-new" autocomplete="off">
+        <input id="af-new-text" placeholder="Neue Aufgabe für diesen Tag" aria-label="Neue Aufgabe" disabled>
+        <select id="af-new-tag" aria-label="Kategorie" disabled></select>
+        <button class="btn" id="af-new-btn" disabled>Hinzufügen</button>
+      </form>
+      <ul class="tree" id="af-tree"></ul>
+      <div class="tail" id="af-tail" hidden></div>
+      <p class="hint" id="af-hint" hidden>Das sind die Einträge des gewählten Tages, ihre Unterpunkte sind die Schritte. Mit dem Pfeil öffnest du einen Eintrag mit allen Einstellungen.</p>
+    </div>
+  </div>
+</aside>
+<div class="tabs">
+  <button class="todo-tab" id="todo-tab" aria-controls="td" aria-expanded="false"><svg class="ico" viewBox="0 0 16 16"><path d="M3 4.5h1M6.5 4.5H13M3 8h1M6.5 8H13M3 11.5h1M6.5 11.5H13"/></svg><span>To-do</span><b id="todo-open" hidden></b></button>
+  <button class="todo-tab" id="af-tab" aria-controls="af" aria-expanded="false"><svg class="ico" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10.5" rx="2"/><path d="M2.5 6.5h11M5.5 1.8v2.4M10.5 1.8v2.4"/></svg><span>Aufgaben</span><b id="af-open" hidden></b></button>
+</div>
 
 <script>
 /*PLAN*/
@@ -521,7 +593,8 @@ const store = {
   set(k, v) { try { const s = JSON.stringify(v); if (native) return native.set(k, s) !== false; localStorage.setItem(k, s); return true; } catch { return false; } },
 };
 const CHECK = '<svg viewBox="0 0 12 12"><path d="M2 6.5 4.8 9 10 3"/></svg>';
-const PIN = '<svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.6"/><path d="M6 3.6V6l1.6 1"/></svg>';
+const PIN = '<svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.6"/><path d="M6 6l1.6 1"/><path class="mh" d="M6 6V3.3"/></svg>';
+const BELL = '<svg viewBox="0 0 12 12"><path d="M3 8.5V5.6a3 3 0 0 1 6 0v2.9l1 1H2zM5 10.6h2"/></svg>';
 const X = '<svg class="ico" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
 const HUES = [{ h: 25, n: "Rot" }, { h: 55, n: "Orange" }, { h: 88, n: "Ocker" }, { h: 145, n: "Grün" }, { h: 190, n: "Petrol" }, { h: 245, n: "Blau" }, { h: 290, n: "Violett" }, { h: 345, n: "Rosa" }];
 const DURS = [5, 10, 15, 20, 30, 45, 60, 75, 90, 120, 150, 180, 240];
@@ -593,7 +666,8 @@ function syncDoc(path, { empty, busy = () => false, changed }) {
 const todayKey = () => dayKey(new Date());
 const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
 let cur = todayKey();
-let day = null;        // Dokument des angezeigten Tags: { entries: [...] }
+let afTree = null;     // Aufgaben-Fach (an die Einträge des Tages gekoppelt)
+let day = null;       // Dokument des angezeigten Tags: { entries: [...] }
 let cats = null;       // Dokument der Kategorien: { list: [{ id, name, hue }] }
 let side = null;       // { mode: "edit", id, fresh } oder { mode: "cats" }
 let drag = null;
@@ -624,14 +698,21 @@ function scrollToNow() {
 
 function commitDay() { entries().forEach(syncDone); day.save(); renderDay(); }
 
-function evInner(e, now) {
+// Erinnerung eines Eintrags als Minute des Tages (oder null)
+const notifyAt = e => !e.notify?.on ? null : e.notify.mode === "timer" && e.start != null ? e.start - e.notify.before : e.notify.at;
+function evInner(e, now, simple) {
+  const at = native ? notifyAt(e) : null;
+  const bell = at != null && at >= 0 ? `<span class="nt-bell">${BELL}${hm(at)}</span>` : "";
+  // Aufgaben ohne Uhrzeit: nur Name (und Erinnerung), alles Weitere im Eintrag oder im Aufgaben-Fach
+  if (simple) return `<button class="ev-check" data-act="check" role="checkbox" aria-checked="${!!e.done}" aria-label="Erledigt">${CHECK}</button>
+    <div class="ev-main"><span class="ev-title">${esc(e.title || "Ohne Titel")}</span>${bell ? `<span class="ev-meta">${bell}</span>` : ""}</div>`;
   const c = catOf(e);
   const steps = e.steps?.length ? `<span>${e.steps.filter(s => s.done).length}/${e.steps.length} Schritte</span>` : "";
   const time = e.start != null ? `<span>${hm(e.start)}–${hm(Math.min(e.start + e.dur, 1440))}</span>` : `<span>${span(e.dur)}</span>`;
   const run = e.timer?.startedAt ? `<span class="run" data-run="${e.id}">${clock(elapsed(e.timer, now))}</span>` : "";
   return `<button class="ev-check" data-act="check" role="checkbox" aria-checked="${!!e.done}" aria-label="Erledigt">${CHECK}</button>
     <div class="ev-main"><span class="ev-title">${e.kind === "termin" ? PIN : ""}${esc(e.title || "Ohne Titel")}</span>
-    <span class="ev-meta">${time}${c ? `<span>${esc(c.name)}</span>` : ""}${steps}${run}</span></div>`;
+    <span class="ev-meta">${time}${c ? `<span>${esc(c.name)}</span>` : ""}${steps}${run}${bell}</span></div>`;
 }
 const evClass = e => `ev${catOf(e) ? "" : " neutral"}${e.done ? " done" : ""}${e.kind === "termin" ? " termin" : ""}`;
 
@@ -651,7 +732,7 @@ function renderDay() {
   const ut = list.filter(e => e.start == null);
   $("#ut-count").textContent = ut.length ? `${ut.filter(e => e.done).length}/${ut.length}` : "";
   $("#untimed").innerHTML = ut.length
-    ? ut.map(e => `<div class="${evClass(e)}" data-ev="${e.id}" ${colorAttr(catOf(e))}>${evInner(e, now)}</div>`).join("")
+    ? ut.map(e => `<div class="${evClass(e)}" data-ev="${e.id}" ${colorAttr(catOf(e))}>${evInner(e, now, true)}</div>`).join("")
     : `<div class="ut-empty">${ready ? "Aufgaben ohne feste Uhrzeit landen hier." : "Lädt …"}</div>`;
 
   // Zeitleiste
@@ -667,6 +748,7 @@ function renderDay() {
   html += `<div class="ghost" id="ghost"></div>`;
   $("#grid").innerHTML = html;
   renderOverview();
+  afTree?.refresh();
 }
 
 function isoWeek(d) {
@@ -807,11 +889,13 @@ function startTimer(e) {
 function stopTimer(e) { e.timer = { acc: elapsed(e.timer, Date.now()), startedAt: null }; }
 
 /* Seitenleiste: Eintrag bearbeiten oder Kategorien verwalten */
-function openEditor(id, fresh = false) { if (side?.mode === "edit" && side.id !== id) closeSide(); side = { mode: "edit", id, fresh }; closeTodo(); renderSide(); $("#side").classList.add("open"); if (fresh) $("#ed-title")?.focus(); }
-function openCats() { if (side?.mode === "edit") closeSide(); side = { mode: "cats" }; closeTodo(); renderSide(); $("#side").classList.add("open"); }
+function openEditor(id, fresh = false) { if (side?.mode === "edit" && side.id !== id) closeSide(); side = { mode: "edit", id, fresh }; closeDrawers(); renderSide(); $("#side").classList.add("open"); if (fresh) $("#ed-title")?.focus(); }
+function openCats() { if (side?.mode === "edit") closeSide(); side = { mode: "cats" }; closeDrawers(); renderSide(); $("#side").classList.add("open"); }
 function closeSide() {
   if (!side) return;
   if (side.mode === "edit") {
+    document.querySelectorAll("#side .tin").forEach(commitTime);   // getippte Uhrzeit nicht verlieren
+    if ($("#ed-nbefore")) commitBefore($("#ed-nbefore"));
     const pend = $("#ed-step-new")?.value.trim();
     const e = findEntry(side.id);
     if (e && pend) { e.steps.push({ id: uid(), text: pend, done: false }); }
@@ -850,8 +934,17 @@ function renderSide() {
   const running = !!e.timer?.startedAt;
   const diff = used ? Math.round(used / 60000) - e.dur : 0;
   const durs = DURS.includes(e.dur) ? DURS : [...DURS, e.dur].sort((a, b) => a - b);
-  const quarter = Array.from({ length: 96 }, (_, i) => i * 15);   // Beginn im Viertelstunden-Takt
-  const starts = e.start == null || quarter.includes(e.start) ? quarter : [...quarter, e.start].sort((a, b) => a - b);
+  const n = e.notify;
+  const timerOk = e.start != null;
+  const notifyField = !native ? "" : `<div class="field"><span class="lbl">Benachrichtigung</span>
+        <label class="switch"><input type="checkbox" id="ed-notify" ${n?.on ? "checked" : ""}> Erinnern</label>
+        ${n?.on ? `<div class="nt-row">
+          <span class="tgl-wrap"><span data-nmode="time" class="${n.mode !== "timer" || !timerOk ? "on" : ""}">Uhrzeit</span><button class="tgl" id="ed-nmode" role="switch" aria-label="Timer statt Uhrzeit" aria-checked="${n.mode === "timer" && timerOk}" ${timerOk ? "" : "disabled"}><i></i></button><span data-nmode="timer" class="${n.mode === "timer" && timerOk ? "on" : ""}">Timer</span></span>
+          ${n.mode === "timer" && timerOk
+            ? `<span class="nt-before"><input class="inp num" id="ed-nbefore" inputmode="numeric" enterkeyhint="done" maxlength="3" value="${n.before}" aria-label="Minuten vorher"> Min. vorher</span>`
+            : timeInput("notify", n.at)}
+        </div>${timerOk ? "" : `<p class="ut-empty">Timer geht nur bei Einträgen mit fester Uhrzeit.</p>`}` : ""}
+      </div>`;
   el.innerHTML = `<div class="panel-head"><h2>${e.kind === "termin" ? "Termin" : "Aufgabe"}</h2><button class="icon-btn" data-close="side" aria-label="Schließen">${X}</button></div>
     <div class="panel-body">
       <div class="field"><label for="ed-title">Titel</label><input class="inp big" id="ed-title" value="${esc(e.title)}" placeholder="Was steht an?" autocomplete="off"></div>
@@ -860,11 +953,12 @@ function renderSide() {
         <span class="lbl">Zeit</span>
         <label class="switch"><input type="checkbox" id="ed-timed" ${e.start != null ? "checked" : ""}> Feste Uhrzeit</label>
         <div class="time-row">
-          ${e.start != null ? `<select class="inp" id="ed-start" aria-label="Beginn">${starts.map(m => `<option value="${m}" ${m === e.start ? "selected" : ""}>${hm(m)} Uhr</option>`).join("")}</select>` : ""}
+          ${e.start != null ? timeInput("start", e.start) : ""}
           <select class="inp" id="ed-dur" aria-label="Geplante Dauer">${durs.map(d => `<option value="${d}" ${d === e.dur ? "selected" : ""}>${span(d)}</option>`).join("")}</select>
-          ${e.start != null ? `<span class="ov-sub">bis ${hm(Math.min(e.start + e.dur, 1440))}</span>` : ""}
+          ${e.start != null ? `<span class="ov-sub" id="ed-until">bis ${hm(Math.min(e.start + e.dur, 1440))}</span>` : ""}
         </div>
       </div>
+      ${notifyField}
       <div class="field"><span class="lbl">Kategorie</span><div class="chips">
         <button class="chip neutral" data-setcat="" aria-pressed="${!catOf(e)}">Keine</button>
         ${list.map(c => `<button class="chip" style="--h:${c.hue}" data-setcat="${c.id}" aria-pressed="${e.cat === c.id}">${esc(c.name)}</button>`).join("")}
@@ -923,6 +1017,8 @@ $("#side").addEventListener("click", ev => {
   if (t.closest("[data-cats]")) { openCats(); return; }
   if (t.closest("[data-kind]")) { e.kind = t.closest("[data-kind]").dataset.kind; commitDay(); renderSide(); return; }
   if (t.closest("[data-setcat]")) { e.cat = t.closest("[data-setcat]").dataset.setcat || null; commitDay(); renderSide(); return; }
+  const nm = t.closest("#ed-nmode") ? (e.notify?.mode === "timer" ? "time" : "timer") : t.closest("[data-nmode]")?.dataset.nmode;
+  if (nm && e.notify?.on && (nm === "time" || e.start != null)) { e.notify.mode = nm; commitDay(); renderSide(); return; }
   const st = t.closest("[data-step]");
   if (st) {
     const s = e.steps.find(x => x.id === st.dataset.step);
@@ -948,8 +1044,52 @@ $("#side").addEventListener("click", ev => {
     toast(`„${e.title}“ gelöscht`, () => { if (cur !== k) return; entries().splice(Math.min(i, entries().length), 0, e); commitDay(); });
   }
 });
+/* Uhrzeit zum Eintippen: nach zwei Ziffern oder Enter springt der Cursor hinter den Doppelpunkt */
+function timeInput(name, m) {
+  return `<span class="tin" data-tin="${name}"><input class="inp tin-h" inputmode="numeric" enterkeyhint="next" maxlength="2" value="${pad(Math.floor(m / 60))}" aria-label="Stunden"><b>:</b><input class="inp tin-m" inputmode="numeric" enterkeyhint="done" maxlength="2" value="${pad(m % 60)}" aria-label="Minuten"></span>`;
+}
+// Gültige Uhrzeit aus den zwei Feldern lesen, sonst null
+function readTime(wrap) {
+  const h = wrap.querySelector(".tin-h").value, m = wrap.querySelector(".tin-m").value;
+  if (!/^\d{1,2}$/.test(h) || !/^\d{0,2}$/.test(m)) return null;
+  const hh = +h, mm = +(m || 0);
+  return hh < 24 && mm < 60 ? hh * 60 + mm : null;
+}
+function commitTime(wrap) {
+  const e = findEntry(side?.id);
+  if (!e || !wrap.isConnected) return;
+  const which = wrap.dataset.tin;
+  const old = which === "start" ? e.start : e.notify?.at;
+  let v = readTime(wrap);
+  if (v == null) v = old;                                   // ungültig: alter Wert bleibt
+  if (which === "start") { v = clamp(v, 0, 1440 - e.dur); e.start = v; const u = $("#ed-until"); if (u) u.textContent = `bis ${hm(Math.min(v + e.dur, 1440))}`; }
+  else if (e.notify) e.notify.at = v;
+  wrap.querySelector(".tin-h").value = pad(Math.floor(v / 60));
+  wrap.querySelector(".tin-m").value = pad(v % 60);
+  if (v !== old) commitDay();
+}
+$("#side").addEventListener("focusin", ev => { if (ev.target.matches(".tin .inp, #ed-nbefore")) ev.target.select(); });
+$("#side").addEventListener("focusout", ev => {
+  const wrap = ev.target.closest?.(".tin");
+  if (wrap) setTimeout(() => { if (!wrap.contains(document.activeElement)) commitTime(wrap); });
+  if (ev.target.id === "ed-nbefore") commitBefore(ev.target);
+});
+function commitBefore(inp) {
+  const e = findEntry(side?.id);
+  if (!e?.notify) return;
+  const v = /^\d{1,3}$/.test(inp.value) ? clamp(+inp.value, 0, 720) : e.notify.before;
+  inp.value = v;
+  if (v !== e.notify.before) { e.notify.before = v; commitDay(); }
+}
+
 $("#side").addEventListener("input", ev => {
   const t = ev.target;
+  if (t.matches(".tin .inp, #ed-nbefore")) {
+    const clean = t.value.replace(/\D/g, "");
+    if (clean !== t.value) t.value = clean;
+    if (t.matches(".tin-h") && clean.length === 2) { const m = t.closest(".tin").querySelector(".tin-m"); m.focus(); m.select(); }
+    return;
+  }
   if (side?.mode === "cats" && t.matches("[data-cat-name]")) {
     const c = cats.data.list.find(x => x.id === t.closest("[data-cat]").dataset.cat);
     c.name = t.value.trim() || "Ohne Namen"; cats.save(); renderDay();
@@ -963,10 +1103,19 @@ $("#side").addEventListener("change", ev => {
   const t = ev.target, e = findEntry(side?.id);
   if (!e) return;
   if (t.id === "ed-timed") { e.start = t.checked ? clamp(snap(cur === todayKey() ? nowMin() + 15 : 9 * 60, 30), 0, 1440 - e.dur) : null; commitDay(); renderSide(); }
-  if (t.id === "ed-start") { e.start = clamp(+t.value, 0, 1440 - e.dur); commitDay(); renderSide(); }
+  if (t.id === "ed-notify") {
+    const st = e.start;
+    e.notify = t.checked
+      ? { on: true, mode: e.notify?.mode || (st != null ? "timer" : "time"), at: e.notify?.at ?? (st != null ? Math.max(0, st - 15) : 9 * 60), before: e.notify?.before ?? 15 }
+      : { ...e.notify, on: false };
+    commitDay(); renderSide();
+  }
   if (t.id === "ed-dur") { e.dur = +t.value; if (e.start != null) e.start = Math.min(e.start, 1440 - e.dur); commitDay(); renderSide(); }
 });
 $("#side").addEventListener("keydown", ev => {
+  if (ev.key === "Enter" && ev.target.matches(".tin-h")) { ev.preventDefault(); const m = ev.target.closest(".tin").querySelector(".tin-m"); m.focus(); m.select(); return; }
+  if (ev.key === "Enter" && ev.target.matches(".tin-m")) { ev.preventDefault(); ev.target.blur(); return; }
+  if (ev.key === "Enter" && ev.target.id === "ed-nbefore") { ev.preventDefault(); ev.target.blur(); return; }
   if (ev.target.id === "ed-step-new" && ev.key === "Enter") {
     ev.preventDefault();
     const text = ev.target.value.trim(), e = findEntry(side?.id);
@@ -982,10 +1131,17 @@ $("#side").addEventListener("focusout", () => setTimeout(() => { day.settle(); c
 $("#cats-btn").onclick = () => side?.mode === "cats" ? closeSide() : openCats();
 
 /* To-do-Fach */
-function openTodo() { if (side) closeSide(); $("#td").classList.add("open"); $("#todo-tab").setAttribute("aria-expanded", "true"); store.set("tagesplaner.todoOffen", true); $("#td-new-text").disabled || $("#td-new-text").focus(); }
+function openTodo() { if (side) closeSide(); closeAf(); $("#td").classList.add("open"); $("#todo-tab").setAttribute("aria-expanded", "true"); store.set("tagesplaner.todoOffen", true); $("#td-new-text").disabled || $("#td-new-text").focus(); }
 function closeTodo() { $("#td").classList.remove("open"); $("#todo-tab").setAttribute("aria-expanded", "false"); store.set("tagesplaner.todoOffen", false); }
 $("#todo-tab").onclick = () => $("#td").classList.contains("open") ? closeTodo() : openTodo();
 $("#td").querySelector("[data-close]").onclick = closeTodo;
+/* Aufgaben-Fach: gleiche Bedienung wie To-do, aber an die Einträge des gewählten Tages gekoppelt */
+const afOpen = () => $("#af").classList.contains("open");
+function openAf() { if (side) closeSide(); closeTodo(); $("#af").classList.add("open"); $("#af-tab").setAttribute("aria-expanded", "true"); afTree?.refresh(); }
+function closeAf() { $("#af").classList.remove("open"); $("#af-tab").setAttribute("aria-expanded", "false"); }
+function closeDrawers() { closeTodo(); closeAf(); }
+$("#af-tab").onclick = () => afOpen() ? closeAf() : openAf();
+$("#af").querySelector("[data-close]").onclick = closeAf;
 /* Einstellungen: Hell, Dunkel oder wie das System. Die Wahl gilt nur in diesem Browser. */
 let hostTheme = document.documentElement.getAttribute("data-theme");
 let themeChoice = store.get("tagesplaner.theme", "");
@@ -1004,6 +1160,8 @@ const setPop = (open) => { $("#set-pop").hidden = !open; $("#set-btn").setAttrib
 $("#set-btn").onclick = e => { e.stopPropagation(); setPop($("#set-pop").hidden); };
 $("#set-pop").addEventListener("click", e => {
   if (e.target.closest("[data-tour-start]")) { tourShow(0); return; }
+  const no = e.target.closest("[data-notif-open]");
+  if (no) { const o = $("#notif-opts"); o.hidden = !o.hidden; no.setAttribute("aria-expanded", !o.hidden); return; }
   const b = e.target.closest("[data-theme-set]");
   if (!b) return;
   themeChoice = b.dataset.themeSet;
@@ -1011,15 +1169,31 @@ $("#set-pop").addEventListener("click", e => {
   applyTheme();
 });
 document.addEventListener("click", e => { if (!e.target.closest(".settings")) setPop(false); });
+/* Benachrichtigungen: nur die Android-App kann sie schicken. Die App liest diese Einstellung selbst. */
+if (native) {
+  const NT_KEY = "tagesplaner.benachrichtigung";
+  const nt = store.get(NT_KEY, { daily: false, motivation: false });
+  const syncNt = () => { $("#nt-daily").checked = !!nt.daily; $("#nt-motiv").checked = !!nt.motivation; $("#nt-motiv").disabled = !nt.daily; };
+  $("#notif-set").hidden = false;
+  syncNt();
+  $("#set-pop").addEventListener("change", e => {
+    if (e.target.id === "nt-daily") nt.daily = e.target.checked;
+    else if (e.target.id === "nt-motiv") nt.motivation = e.target.checked;
+    else return;
+    if (!store.set(NT_KEY, nt)) status("Nicht gespeichert, Speicherplatz prüfen", "warn");
+    syncNt();
+  });
+}
 
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && !$("#set-pop").hidden) { setPop(false); return; }
-  if (e.key !== "Escape" || e.target.closest?.("#td-tree")) return;
-  if (side) closeSide(); else if ($("#td").classList.contains("open")) closeTodo();
+  if (e.key !== "Escape" || e.target.closest?.("#td-tree, #af-tree")) return;
+  if (side) closeSide(); else if ($("#td").classList.contains("open")) closeTodo(); else if (afOpen()) closeAf();
 });
 
 /* ---------- To-do-Liste (gleich wie die Seite „To-do“, eigene Daten) ---------- */
-function initTodo() {
+// cfg.p: Kürzel der Element-ids ("td" To-do, "af" Aufgaben). cfg.linked: Daten sind die Einträge des gewählten Tages.
+function initTodo(cfg = { p: "td", badge: "#todo-open", expKey: "tagesplaner.todo.offen" }) {
 /*LOGIC*/
 const STOP = new Set("der die das den dem des ein eine einen einem einer und oder mit für fuer von vom zum zur im in am an auf aus bei nach über unter vor bis ich du wir mir mich dir dich mal noch auch nicht neue neuen neues alle bitte endlich morgen heute".split(" "));
 
@@ -1050,7 +1224,7 @@ function locate(list, id, parent = null) {
 function contains(n, id) { return n.id === id || n.children.some(c => contains(c, id)); }
 
 // pos: "before" | "after" | "inside" (ans Ende) | "first" (an den Anfang); targetId null = ans Ende der obersten Ebene
-function move(items, dragId, targetId, pos) {
+function move(items, dragId, targetId, pos, autoTag = true) {
   const from = locate(items, dragId);
   if (!from) return false;
   if (targetId !== null) {
@@ -1066,7 +1240,7 @@ function move(items, dragId, targetId, pos) {
     else if (pos === "first") { t.node.children.unshift(from.node); topLevel = false; }
     else { t.list.splice(t.index + (pos === "after" ? 1 : 0), 0, from.node); topLevel = t.parent === null; }
   }
-  if (topLevel && !from.node.tag) { from.node.tag = guessTag(from.node.text); from.node.tagAuto = true; }
+  if (autoTag && topLevel && !from.node.tag) { from.node.tag = guessTag(from.node.text); from.node.tagAuto = true; }
   normalize(items);
   return true;
 }
@@ -1082,15 +1256,43 @@ const ICON = {
   grip: '<svg viewBox="0 0 16 16"><circle cx="6" cy="4" r="1.3"/><circle cx="10" cy="4" r="1.3"/><circle cx="6" cy="8" r="1.3"/><circle cx="10" cy="8" r="1.3"/><circle cx="6" cy="12" r="1.3"/><circle cx="10" cy="12" r="1.3"/></svg>',
 };
 
+const q = s => $("#" + cfg.p + s);
+const linked = !!cfg.linked;
 let items = [];
 let ready = false;
 let editing = null;   // id der Aufgabe, die gerade bearbeitet wird
 let adding = null;    // id der Aufgabe, an die ein Unterpunkt kommt
 let dragId = null;
-const exp = store.get("tagesplaner.todo.offen", {});
+const exp = store.get(cfg.expKey, {});
+const saveExp = () => store.set(cfg.expKey, exp);
 const isOpen = (n, depth) => n.id in exp ? exp[n.id] : depth > 0;
 const busyLocally = () => editing || adding || dragId;
-const T = syncDoc("notizen/haupt", { empty: { items: [], v: 1 }, busy: busyLocally, changed: () => { items = normalize(T.data.items || []); T.data.items = items; if (!ready) enable(); else render(); } });
+const T = linked ? null : syncDoc("notizen/haupt", { empty: { items: [], v: 1 }, busy: busyLocally, changed: () => { items = normalize(T.data.items || []); T.data.items = items; if (!ready) enable(); else render(); } });
+
+/* Kopplung an die Einträge: Einträge sind die oberste Ebene, ihre Schritte die Unterpunkte.
+   Zurückgeschrieben wird nur Text, Haken, Schritte und Reihenfolge; alles andere am Eintrag bleibt unberührt. */
+const grave = new Map();   // im Fach gelöschte Einträge, damit "Rückgängig" sie vollständig zurückholt
+function fromDay() {
+  return normalize(entries().map(e => ({ id: e.id, text: e.title, done: !!e.done, cat: e.cat, start: e.start, dur: e.dur,
+    children: (e.steps || []).map(s => ({ id: s.id, text: s.text, done: !!s.done, children: [] })) })));
+}
+function toDay() {
+  const old = new Map(entries().map(e => [e.id, e]));
+  const keep = new Set(items.map(n => n.id));
+  for (const e of entries()) if (!keep.has(e.id)) grave.set(e.id, e);
+  day.data.entries = items.map(n => {
+    const e = old.get(n.id) || grave.get(n.id) || newEntry({ id: n.id, cat: n.cat || null });
+    e.title = n.text;
+    e.steps = n.children.map(c => ({ id: c.id, text: c.text, done: !!c.done }));
+    e.done = n.done;
+    return e;
+  });
+}
+function refresh() {
+  if (!linked || busyLocally()) return;
+  items = fromDay();
+  if (!ready) { if (day?.ready) enable(); } else render();
+}
 
 function countDone(n) { return n.children.filter(c => c.done).length; }
 
@@ -1101,22 +1303,25 @@ function nodeHTML(n, depth) {
   let row;
   if (editing === n.id) {
     row = `<form class="edit" data-edit="${n.id}">
-      ${depth === 0 ? `<input class="e-tag" value="${esc(n.tag || "")}" placeholder="Stichwort" aria-label="Stichwort" maxlength="24">` : ""}
+      ${depth === 0 && !linked ? `<input class="e-tag" value="${esc(n.tag || "")}" placeholder="Stichwort" aria-label="Stichwort" maxlength="24">` : ""}
       <input class="e-text" value="${esc(n.text)}" aria-label="Text"></form>`;
   } else {
+    const c = linked && depth === 0 ? (cats?.data.list || []).find(x => x.id === n.cat) : null;
     row = `<div class="body">
-        ${depth === 0 && n.tag ? `<span class="tag" style="--h:${hue(n.tag)}" title="${n.tagAuto ? "Stichwort automatisch gewählt" : "Stichwort"}">${esc(n.tag)}</span>` : ""}
-        <span class="text">${esc(n.text)}</span>
+        ${!linked && depth === 0 && n.tag ? `<span class="tag" style="--h:${hue(n.tag)}" title="${n.tagAuto ? "Stichwort automatisch gewählt" : "Stichwort"}">${esc(n.tag)}</span>` : ""}
+        ${c ? `<span class="tag" style="--h:${c.hue}" title="Kategorie">${esc(c.name)}</span>` : ""}
+        <span class="text">${esc(n.text)}</span>${linked && depth === 0 && n.start != null ? `<span class="when">${hm(n.start)}–${hm(Math.min(n.start + n.dur, 1440))}</span>` : ""}
       </div>
       ${kids ? `<button class="fold" data-act="fold" aria-expanded="${open}" aria-label="${n.children.length} Unterpunkte, ${countDone(n)} erledigt">${countDone(n)}/${n.children.length}${ICON.chev}</button>` : ""}
       <span class="tools">
-        <button class="tool" data-act="add" title="Unterpunkt anlegen" aria-label="Unterpunkt anlegen">${ICON.plus}</button>
+        ${linked && depth === 0 ? `<button class="tool" data-act="open" title="Eintrag öffnen" aria-label="Eintrag mit allen Einstellungen öffnen">${ICON.chev}</button>` : ""}
+        ${!linked || depth === 0 ? `<button class="tool" data-act="add" title="${linked ? "Schritt anlegen" : "Unterpunkt anlegen"}" aria-label="${linked ? "Schritt anlegen" : "Unterpunkt anlegen"}">${ICON.plus}</button>` : ""}
         <button class="tool" data-act="edit" title="Bearbeiten" aria-label="Bearbeiten">${ICON.edit}</button>
         <button class="tool del" data-act="del" title="Löschen" aria-label="Löschen">${ICON.del}</button>
         <span class="tool grip" draggable="true" title="Ziehen zum Verschieben" aria-hidden="true">${ICON.grip}</span>
       </span>`;
   }
-  const adder = adding === n.id ? `<li class="adder"><div class="row"><span class="stub"></span><input id="td-adder-input" placeholder="Unterpunkt, Enter für den nächsten" aria-label="Neuer Unterpunkt"></div></li>` : "";
+  const adder = adding === n.id ? `<li class="adder"><div class="row"><span class="stub"></span><input id="${cfg.p}-adder-input" placeholder="${linked ? "Schritt" : "Unterpunkt"}, Enter für den nächsten" aria-label="Neuer Unterpunkt"></div></li>` : "";
   const sub = kids || adder ? `<ul class="kids"><span class="thread" data-thread="${n.id}" title="Zweig zuklappen"></span>${n.children.map(c => nodeHTML(c, depth + 1)).join("")}${adder}</ul>` : "";
   return `<li class="${cls}" data-id="${n.id}"><div class="row" data-row="${n.id}">
       <button class="check" data-act="check" role="checkbox" aria-checked="${n.done}" aria-label="Erledigt">${ICON.check}</button>
@@ -1125,40 +1330,49 @@ function nodeHTML(n, depth) {
 
 let rendering = false;   // beim Neuzeichnen meldet der Browser "Fokus verlassen" für das alte Feld, das ist kein Rausklicken
 function render() {
-  const tree = $("#td-tree");
+  const tree = q("-tree");
   rendering = true;
   if (!items.length && ready) {
-    tree.innerHTML = `<li class="empty"><strong>Noch nichts notiert.</strong>Für grobe Sachen und Gedanken, die noch keinen Platz im Tag haben. Unterpunkte hängst du mit + an.</li>`;
+    tree.innerHTML = linked
+      ? `<li class="empty"><strong>Noch nichts geplant.</strong>Was du hier einträgst, steht auch im Tag. Schritte hängst du mit + an.</li>`
+      : `<li class="empty"><strong>Noch nichts notiert.</strong>Für grobe Sachen und Gedanken, die noch keinen Platz im Tag haben. Unterpunkte hängst du mit + an.</li>`;
   } else {
     tree.innerHTML = items.map(n => nodeHTML(n, 0)).join("");
   }
   rendering = false;
-  $("#td-tail").hidden = !items.length;
-  $("#td-hint").hidden = !items.length;
+  q("-tail").hidden = !items.length;
+  q("-hint").hidden = !items.length;
   const open = items.filter(n => !n.done).length;
-  $("#td-count").textContent = items.length ? `${open} offen · ${items.length - open} erledigt` : "";
-  $("#todo-open").hidden = !open; $("#todo-open").textContent = open;
+  q("-count").textContent = items.length ? `${linked ? new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "numeric", month: "short" }).format(fromKey(cur)) + " · " : ""}${open} offen · ${items.length - open} erledigt` : "";
+  $(cfg.badge).hidden = !open; $(cfg.badge).textContent = open;
+  if (linked) {   // Kategorien für neue Aufgaben
+    const sel = q("-new-tag"), v = sel.value;
+    sel.innerHTML = `<option value="">Keine Kategorie</option>` + (cats?.data.list || []).map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
+    sel.value = [...sel.options].some(o => o.value === v) ? v : "";
+  }
   if (editing) { const i = tree.querySelector(`[data-edit="${editing}"] .e-text`); i && (i.focus(), i.setSelectionRange(i.value.length, i.value.length)); }
-  if (adding) $("#td-adder-input")?.focus();
+  if (adding) q("-adder-input")?.focus();
 }
 
 function commit() {
   normalize(items);
+  if (linked) { toDay(); commitDay(); render(); return; }
   render();
   T.save();
 }
-function settle() { T.settle(); }
+function settle() { linked ? day.settle() : T.settle(); }
 
 function enable() {
   ready = true;
-  for (const id of ["#td-new-text", "#td-new-tag", "#td-new-btn"]) $(id).disabled = false;
+  for (const s of ["-new-text", "-new-tag", "-new-btn"]) q(s).disabled = false;
   render();
 }
-if (T.ready) { items = normalize(T.data.items || []); T.data.items = items; enable(); }   // ohne Datenbank: Stand aus dem Browser
+if (linked) refresh();
+else if (T.ready) { items = normalize(T.data.items || []); T.data.items = items; enable(); }   // ohne Datenbank: Stand aus dem Browser
 
 /* Stichwort von Claude: nur wenn keins eingetragen wurde; die Schätzung steht sofort da */
-let sample = null, sampleOff = false;
-window.claude?.use?.("sample").then(s => { sample = s; }).catch(() => {});
+let sample = null, sampleOff = linked;
+if (!linked) window.claude?.use?.("sample").then(s => { sample = s; }).catch(() => {});
 async function suggestTag(id) {
   if (!sample || sampleOff) return;
   const n = locate(items, id)?.node;
@@ -1177,31 +1391,32 @@ async function suggestTag(id) {
 }
 
 /* Eingaben */
-$("#td-new").addEventListener("submit", e => {
+q("-new").addEventListener("submit", e => {
   e.preventDefault();
-  const text = $("#td-new-text").value.trim();
+  const text = q("-new-text").value.trim();
   if (!text || !ready) return;
-  const typed = $("#td-new-tag").value.trim();
-  const n = { id: uid(), text, tag: typed || guessTag(text), tagAuto: !typed, done: false, children: [] };
+  const typed = q("-new-tag").value.trim();
+  const n = linked ? { id: uid(), text, cat: typed || null, done: false, children: [] }
+    : { id: uid(), text, tag: typed || guessTag(text), tagAuto: !typed, done: false, children: [] };
   items.unshift(n);
-  $("#td-new-text").value = ""; $("#td-new-tag").value = "";
+  q("-new-text").value = ""; if (!linked) q("-new-tag").value = "";
   commit();
-  $("#td-new-text").focus();
-  if (!typed) suggestTag(n.id);
+  q("-new-text").focus();
+  if (!typed && !linked) suggestTag(n.id);
 });
 
 function toggleOpen(id) {
-  const li = $("#td-tree").querySelector(`li[data-id="${id}"]`);
+  const li = q("-tree").querySelector(`li[data-id="${id}"]`);
   if (!li || !li.classList.contains("has-kids")) return;
   const open = li.classList.contains("closed");
   li.classList.toggle("closed", !open);
   li.querySelector(":scope > .row .fold")?.setAttribute("aria-expanded", open);
-  exp[id] = open; store.set("tagesplaner.todo.offen", exp);
+  exp[id] = open; saveExp();
   const kids = li.querySelector(":scope > .kids");
   if (open && kids) { kids.classList.remove("unfold"); void kids.offsetWidth; kids.classList.add("unfold"); }
 }
 
-$("#td-tree").addEventListener("click", e => {
+q("-tree").addEventListener("click", e => {
   const thread = e.target.closest("[data-thread]");
   if (thread) { toggleOpen(thread.dataset.thread); return; }
   const rowEl = e.target.closest("[data-row]");
@@ -1211,7 +1426,8 @@ $("#td-tree").addEventListener("click", e => {
   if (!hit) return;
   const act = e.target.closest("[data-act]")?.dataset.act;
   if (act === "check") { setDone(hit.node, !hit.node.done); commit(); return; }
-  if (act === "add") { adding = id; editing = null; exp[id] = true; store.set("tagesplaner.todo.offen", exp); render(); return; }
+  if (act === "open") { openEditor(id); return; }
+  if (act === "add") { adding = id; editing = null; exp[id] = true; saveExp(); render(); return; }
   if (act === "edit") { editing = id; adding = null; render(); return; }
   if (act === "del") {
     const { node, list, index, parent } = hit;
@@ -1227,14 +1443,14 @@ $("#td-tree").addEventListener("click", e => {
   if (act === "fold" || !e.target.closest("button, .grip")) toggleOpen(id);
 });
 
-$("#td-tree").addEventListener("dblclick", e => {
+q("-tree").addEventListener("dblclick", e => {
   const txt = e.target.closest(".text, .tag");
   if (!txt) return;
   editing = txt.closest("[data-row]").dataset.row; adding = null; render();
 });
 
 function finishEdit(save) {
-  const form = $("#td-tree").querySelector("[data-edit]");
+  const form = q("-tree").querySelector("[data-edit]");
   if (!form || !editing) return;
   const n = locate(items, editing)?.node;
   const id = editing;
@@ -1255,12 +1471,12 @@ function finishEdit(save) {
   } else render();
   settle();
 }
-$("#td-tree").addEventListener("keydown", e => {
+q("-tree").addEventListener("keydown", e => {
   if (e.target.closest("[data-edit]")) {
     if (e.key === "Enter") { e.preventDefault(); finishEdit(true); }
     if (e.key === "Escape") finishEdit(false);
   }
-  if (e.target.id === "td-adder-input") {
+  if (e.target.id === cfg.p + "-adder-input") {
     if (e.key === "Enter") {
       e.preventDefault();
       const text = e.target.value.trim();
@@ -1270,12 +1486,12 @@ $("#td-tree").addEventListener("keydown", e => {
     if (e.key === "Escape") { adding = null; render(); settle(); }
   }
 });
-$("#td-tree").addEventListener("focusout", e => {
+q("-tree").addEventListener("focusout", e => {
   if (rendering || !e.target.isConnected) return;   // Feld wurde gerade neu gezeichnet
   if (e.target.closest("[data-edit]")) {
     setTimeout(() => { if (!document.activeElement?.closest("[data-edit]")) finishEdit(true); });
   }
-  if (e.target.id === "td-adder-input") {
+  if (e.target.id === cfg.p + "-adder-input") {
     const text = e.target.value.trim();
     const parent = locate(items, adding)?.node;
     adding = null;
@@ -1286,10 +1502,10 @@ $("#td-tree").addEventListener("focusout", e => {
 });
 
 /* Ziehen und Ablegen am Griff (nur innerhalb des To-do-Fachs) */
-const box = $("#td");
+const box = q("");
 let dropAt = null, openTimer = null;
 function clearDrop() { box.querySelectorAll(".drop-before, .drop-after, .drop-inside").forEach(el => el.classList.remove("drop-before", "drop-after", "drop-inside")); }
-$("#td-tree").addEventListener("dragstart", e => {
+q("-tree").addEventListener("dragstart", e => {
   const grip = e.target.closest?.(".grip");
   if (!grip) { e.preventDefault(); return; }
   const row = grip.closest("[data-row]");
@@ -1303,8 +1519,10 @@ box.addEventListener("dragover", e => {
   if (!dragId) return;
   clearDrop();
   dropAt = null;
-  if (e.target.closest("#td-tail")) {
-    e.preventDefault(); $("#td-tail").classList.add("drop-after"); dropAt = { id: null, pos: "after" }; return;
+  const srcTop = locate(items, dragId)?.parent === null;
+  if (e.target.closest("#" + cfg.p + "-tail")) {
+    if (linked && !srcTop) return;   // ein Schritt wird kein eigener Eintrag
+    e.preventDefault(); q("-tail").classList.add("drop-after"); dropAt = { id: null, pos: "after" }; return;
   }
   const row = e.target.closest("[data-row]");
   if (!row) return;
@@ -1314,12 +1532,19 @@ box.addEventListener("dragover", e => {
   const r = row.getBoundingClientRect();
   const y = (e.clientY - r.top) / r.height;
   let pos = y < .28 ? "before" : y > .72 ? "after" : "inside";
+  if (linked) {
+    // nur zwei Ebenen: Einträge bleiben Einträge (sonst gingen Uhrzeit und Timer verloren), Schritte bleiben Schritte
+    const tgtTop = locate(items, id)?.parent === null;
+    if (srcTop) { if (!tgtTop) return; if (pos === "inside") pos = y < .5 ? "before" : "after"; }
+    else if (tgtTop) pos = "inside";
+    else if (pos === "inside") pos = "after";
+  }
   e.preventDefault();
   e.dataTransfer.dropEffect = "move";
   row.classList.add("drop-" + pos);
   // unter einer aufgeklappten Aufgabe heißt "danach": als ersten Unterpunkt einhängen
   const li = row.parentElement;
-  if (pos === "after" && li.classList.contains("has-kids") && !li.classList.contains("closed")) pos = "first";
+  if (pos === "after" && !(linked && srcTop) && li.classList.contains("has-kids") && !li.classList.contains("closed")) pos = "first";
   dropAt = { id, pos };
   if (pos === "inside" && row.parentElement.classList.contains("closed")) {
     if (openTimer?.id !== id) { clearTimeout(openTimer?.t); openTimer = { id, t: setTimeout(() => toggleOpen(id), 600) }; }
@@ -1331,8 +1556,8 @@ box.addEventListener("drop", e => {
   const { id, pos } = dropAt;
   const moved = dragId;
   dragId = null;
-  if (move(items, moved, id, pos)) {
-    if (pos === "inside" || pos === "first") { exp[id] = true; store.set("tagesplaner.todo.offen", exp); }
+  if (move(items, moved, id, pos, !linked)) {
+    if (pos === "inside" || pos === "first") { exp[id] = true; saveExp(); }
     commit();
   } else render();
 });
@@ -1341,6 +1566,7 @@ box.addEventListener("dragend", () => {
   if (dragId) { dragId = null; render(); }
   settle();
 });
+return { refresh };
 }
 
 /* Tutorial: Sprechblasen zeigen nacheinander auf die wichtigsten Stellen.
@@ -1353,6 +1579,7 @@ const TOUR = [
   ["#week", "Woche", "Tippe auf einen Tag, um ihn anzusehen."],
   [".nav", "Tage und Kategorien", "Mit den Pfeilen gehst du einen Tag vor oder zurück. „Heute“ bringt dich zu heute. Bei „Kategorien“ gibst du deinen Einträgen Farben."],
   ["#todo-tab", "To-do", "Eine Liste für alles, was noch keinen festen Tag hat."],
+  ["#af-tab", "Aufgaben", "Alle Einträge des Tages als Liste. Hier siehst du auch ihre Schritte. Was du hier einträgst, steht auch im Tag."],
   ["#set-btn", "Einstellungen", "Hier wechselst du zwischen Hell und Dunkel. Hier startest du auch diese Anleitung neu."],
 ];
 let tour = null;
@@ -1361,7 +1588,7 @@ function tourShow(i) {
   if (!tour) {
     setPop(false);
     if (side) closeSide();
-    if ($("#td").classList.contains("open")) closeTodo();
+    closeDrawers();
     const el = document.createElement("div");
     el.className = "tour";
     el.innerHTML = `<div class="tour-dim"></div><div class="tour-ring"></div><div class="tour-tip" role="dialog" aria-modal="true" aria-labelledby="tour-h">
@@ -1418,6 +1645,7 @@ window.appBack = () => {
   if (!$("#set-pop").hidden) { setPop(false); return true; }
   if (side) { closeSide(); return true; }
   if ($("#td").classList.contains("open")) { closeTodo(); return true; }
+  if (afOpen()) { closeAf(); return true; }
   return false;
 };
 
@@ -1431,6 +1659,7 @@ async function boot() {
   cats = syncDoc("planer/kategorien", { empty: { list: [] }, busy: planBusy, changed: () => { renderDay(); if (side) renderSide(); } });
   openDay(todayKey());
   initTodo();
+  afTree = initTodo({ p: "af", badge: "#af-open", expKey: "tagesplaner.aufgaben.offen", linked: true });
   if (store.get("tagesplaner.todoOffen", false)) openTodo();
 }
 boot();
