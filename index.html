@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tagesplaner</title>
+<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)">
+<style>
+/* Layout: eine Spalte wie die To-do-Seite. Oben Tag und Woche, darunter Überblick, Aufgaben ohne Uhrzeit und die Zeitleiste.
+   Einträge liegen als leicht durchsichtige Blöcke in der Farbe ihrer Kategorie auf der Zeitleiste. Rechts klappt die To-do-Liste heraus. */
+:root {
+  --bg: #F2F3F5;
+  --surface: #FFFFFF;
+  --hover: #E9EBEF;
+  --ink: #1B1F25;
+  --muted: #5F6774;
+  --line: #C9CFD8;
+  --hair: #E0E3E8;
+  --accent: #2B7A4F;
+  --accent-soft: #DCEFE3;
+  --on-accent: #FFFFFF;
+  --danger: #B3261E;
+  --late: #A4462B;
+  --chip-l: .93; --chip-c: .05; --chip-fl: .40; --chip-fc: .11;
+  /* Einträge: Fläche, Schrift und Randstreifen je Kategorie-Farbton */
+  --ev-fl: .74; --ev-fc: .10; --ev-fa: .26;
+  --ev-tl: .36; --ev-tc: .09;
+  --ev-bl: .62; --ev-bc: .12;
+  --font: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+  --display: "Bricolage Grotesque", "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+  --hour: 52px;
+  --gut: 52px;
+  --row: 40px;
+  --indent: 26px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #13161B; --surface: #1B1F26; --hover: #232832; --ink: #E5E8ED; --muted: #9AA3B0;
+    --line: #3A424E; --hair: #262B34; --accent: #5DC08C; --accent-soft: #1E3529; --on-accent: #0E1A13;
+    --danger: #F2867E; --late: #E9967A; --chip-l: .33; --chip-c: .06; --chip-fl: .87; --chip-fc: .08;
+    --ev-fl: .62; --ev-fc: .10; --ev-fa: .26; --ev-tl: .89; --ev-tc: .05; --ev-bl: .72; --ev-bc: .12;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #13161B; --surface: #1B1F26; --hover: #232832; --ink: #E5E8ED; --muted: #9AA3B0;
+  --line: #3A424E; --hair: #262B34; --accent: #5DC08C; --accent-soft: #1E3529; --on-accent: #0E1A13;
+  --danger: #F2867E; --late: #E9967A; --chip-l: .33; --chip-c: .06; --chip-fl: .87; --chip-fc: .08;
+  --ev-fl: .62; --ev-fc: .10; --ev-fa: .26; --ev-tl: .89; --ev-tc: .05; --ev-bl: .72; --ev-bc: .12;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font);
+  padding: 28px 16px 96px;
+}
+::selection { background: var(--accent-soft); color: var(--ink); }
+input, select { caret-color: var(--accent); font: inherit; color: inherit; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+svg { display: block; }
+.ico { width: 16px; height: 16px; stroke: currentColor; stroke-width: 1.9; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+.app { max-width: 880px; margin: 0 auto; display: grid; gap: 18px; }
+
+/* Kopf: Tag, Blättern, Woche */
+.top { display: grid; gap: 14px; }
+.title-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; }
+h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.03em; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.status::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: 1px; }
+.status.warn::before { background: var(--danger); }
+.status.busy::before { background: var(--line); }
+.nav { display: flex; align-items: center; gap: 6px; }
+.head-left { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.settings { position: relative; flex: none; margin-top: 2px; }
+.pop { position: absolute; top: 44px; left: 0; z-index: 25; display: grid; gap: 8px; padding: 12px; min-width: 240px; background: var(--surface); border: 1px solid var(--hair); border-radius: 12px; box-shadow: 0 8px 28px rgb(0 0 0 / .14); }
+.pop[hidden] { display: none; }
+.pop .seg button { white-space: nowrap; }
+.icon-btn { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); border: 1px solid var(--hair); background: var(--surface); }
+.icon-btn:hover { color: var(--ink); background: var(--hover); }
+.soft-btn { height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--hair); background: var(--surface); font-weight: 600; font-size: 14px; }
+.soft-btn:hover { background: var(--hover); }
+.soft-btn[aria-pressed="true"] { border-color: var(--ink); }
+
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.wd { display: grid; justify-items: center; gap: 2px; padding: 6px 0 7px; border-radius: 10px; color: var(--muted); font-size: 12px; font-weight: 500; }
+.wd b { font: 600 17px/1.2 var(--font); color: var(--ink); font-variant-numeric: tabular-nums; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; }
+.wd:hover { background: var(--hover); }
+.wd.today b { color: var(--accent); }
+.wd.sel b { background: var(--ink); color: var(--bg); }
+.wd.sel.today b { background: var(--accent); color: var(--on-accent); }
+
+/* Überblick */
+.overview { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 1px; background: var(--hair); border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; }
+.ov { background: var(--surface); padding: 12px 14px; display: grid; gap: 3px; align-content: start; min-width: 0; }
+.ov-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+.ov-main { font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.ov-sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ov-next { cursor: pointer; text-align: left; }
+.ov-next:hover { background: var(--hover); }
+.ov-next .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; background: oklch(var(--ev-bl) calc(var(--ev-bc) * var(--c, 1)) var(--h, 250)); }
+.bar { height: 4px; border-radius: 4px; background: var(--hair); overflow: hidden; margin-top: 6px; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width .3s ease-out; }
+.late { color: var(--late); }
+.saved { color: var(--accent); }
+@media (max-width: 620px) {
+  .overview { grid-template-columns: 1fr 1fr; }
+  .overview > :first-child { grid-column: 1 / -1; }
+}
+
+/* Schnell eintragen */
+.quick { display: flex; gap: 8px; background: var(--surface); border: 1px solid var(--hair); border-radius: 12px; padding: 8px; }
+.quick input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px; border-radius: 8px; }
+.quick input::placeholder { color: var(--muted); }
+.quick input:focus { outline: none; background: var(--hover); }
+.btn { background: var(--ink); color: var(--bg); border-radius: 8px; padding: 10px 16px; font-weight: 600; }
+.btn:hover { opacity: .88; }
+.btn:active { transform: scale(.98); }
+.btn[disabled] { opacity: .4; cursor: default; }
+
+/* Ohne Uhrzeit */
+.untimed { display: grid; gap: 6px; }
+.sec-label { font-size: 13px; font-weight: 600; color: var(--muted); display: flex; justify-content: space-between; align-items: baseline; }
+.ut-list { display: grid; gap: 4px; }
+.ut-empty { font-size: 13px; color: var(--muted); padding: 2px 0 4px; }
+
+/* Einträge (auf der Zeitleiste und ohne Uhrzeit) */
+.ev {
+  --c: 1;
+  position: relative; display: flex; gap: 8px; align-items: flex-start; min-width: 0;
+  background: oklch(var(--ev-fl) calc(var(--ev-fc) * var(--c)) var(--h) / var(--ev-fa));
+  color: oklch(var(--ev-tl) calc(var(--ev-tc) * var(--c)) var(--h));
+  border-left: 3px solid oklch(var(--ev-bl) calc(var(--ev-bc) * var(--c)) var(--h));
+  border-radius: 6px; padding: 5px 8px 5px 7px; cursor: pointer; user-select: none;
+}
+.ev.neutral { --c: .2; --h: 250; }
+.ev:hover { background: oklch(var(--ev-fl) calc(var(--ev-fc) * var(--c)) var(--h) / calc(var(--ev-fa) + .1)); }
+.ev.termin { border-left-width: 5px; }
+.ev.termin .ev-title { font-weight: 600; }
+.ev.done { opacity: .55; }
+.ev.done .ev-title { text-decoration: line-through; }
+.ev-check {
+  flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 5px; display: grid; place-items: center;
+  border: 1.6px solid oklch(var(--ev-bl) calc(var(--ev-bc) * var(--c)) var(--h)); background: var(--surface);
+}
+.ev-check svg { width: 10px; height: 10px; stroke: var(--surface); stroke-width: 3; fill: none; opacity: 0; }
+.ev.done .ev-check { background: oklch(var(--ev-bl) calc(var(--ev-bc) * var(--c)) var(--h)); }
+.ev.done .ev-check svg { opacity: 1; }
+.ev-main { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.ev-title { font-size: 14px; line-height: 18px; overflow-wrap: anywhere; display: flex; align-items: center; gap: 5px; }
+.ev-title svg { width: 12px; height: 12px; flex: none; stroke: currentColor; stroke-width: 2; fill: none; }
+.ev-meta { font-size: 12px; line-height: 16px; opacity: .85; font-variant-numeric: tabular-nums; display: flex; gap: 6px; flex-wrap: wrap; }
+.run { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.run::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+
+/* Zeitleiste */
+.timeline { position: relative; height: clamp(420px, calc(100dvh - 330px), 860px); overflow-y: auto; border: 1px solid var(--hair); border-radius: 12px; background: var(--surface); scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.grid {
+  position: relative; height: calc(24 * var(--hour)); margin: 8px 0;
+  background-image: repeating-linear-gradient(to bottom, var(--hair) 0 1px, transparent 1px var(--hour));
+  background-position: var(--gut) 0;
+  background-repeat: no-repeat;
+  background-size: calc(100% - var(--gut)) 100%;
+  cursor: copy;
+}
+.hl { position: absolute; left: 0; width: calc(var(--gut) - 8px); text-align: right; font-size: 11px; color: var(--muted); transform: translateY(-50%); font-variant-numeric: tabular-nums; pointer-events: none; }
+.grid .ev {
+  position: absolute; left: calc(var(--gut) + 2px + (100% - var(--gut) - 8px) * var(--x)); width: calc((100% - var(--gut) - 8px) * var(--w) - 3px);
+  overflow: hidden; padding-top: 3px; padding-bottom: 3px; cursor: grab;
+}
+.grid .ev.short { flex-direction: row; align-items: center; }
+.grid .ev.short .ev-check { margin-top: 0; }
+.grid .ev.short .ev-main { display: flex; gap: 8px; align-items: baseline; }
+.grid .ev.short .ev-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.grid .ev.lifted { z-index: 3; box-shadow: 0 6px 18px rgb(0 0 0 / .14); cursor: grabbing; opacity: .95; }
+.resize { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; cursor: ns-resize; }
+.now { position: absolute; left: calc(var(--gut) - 6px); right: 0; height: 2px; background: var(--late); pointer-events: none; z-index: 2; }
+.now::before { content: ""; position: absolute; left: -4px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--late); }
+.ghost { position: absolute; left: calc(var(--gut) + 2px); right: 6px; border-radius: 6px; border: 1.5px dashed var(--line); pointer-events: none; display: none; }
+.grid:hover .ghost.on { display: block; }
+@media (hover: none) { .grid .ev { cursor: pointer; } .resize { display: none; } }
+
+/* Seitenleiste rechts: Eintrag bearbeiten, Kategorien */
+.side, .drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100%); z-index: 20;
+  background: var(--surface); border-left: 1px solid var(--hair); box-shadow: -10px 0 32px rgb(0 0 0 / .10);
+  transform: translateX(105%); transition: transform .28s cubic-bezier(.16, 1, .3, 1); visibility: hidden;
+  display: flex; flex-direction: column;
+}
+.side.open, .drawer.open { transform: none; visibility: visible; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 16px 12px; border-bottom: 1px solid var(--hair); }
+.panel-head h2 { font: 650 20px/1.2 var(--display); letter-spacing: -0.01em; margin: 0; }
+.panel-body { flex: 1; overflow-y: auto; padding: 16px; display: grid; gap: 18px; align-content: start; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.field { display: grid; gap: 6px; }
+.field > label, .field > .lbl { font-size: 12px; font-weight: 600; color: var(--muted); }
+.inp { width: 100%; min-width: 0; height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.inp:focus { outline: none; border-color: var(--accent); }
+.inp.big { font-size: 17px; font-weight: 600; height: 44px; }
+.seg { display: inline-grid; grid-auto-flow: column; background: var(--hover); border-radius: 9px; padding: 3px; gap: 2px; justify-self: start; }
+.seg button { padding: 6px 14px; border-radius: 7px; font-size: 14px; font-weight: 500; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / .08); }
+.time-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.time-row .inp { width: auto; }
+.switch { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.switch input { accent-color: var(--accent); width: 16px; height: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  --c: 1; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px 0 9px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  background: oklch(var(--ev-fl) calc(var(--ev-fc) * var(--c)) var(--h) / var(--ev-fa)); color: oklch(var(--ev-tl) calc(var(--ev-tc) * var(--c)) var(--h));
+  border: 1.5px solid transparent;
+}
+.chip.neutral { --c: .2; --h: 250; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: oklch(var(--ev-bl) calc(var(--ev-bc) * var(--c)) var(--h)); }
+.chip[aria-pressed="true"] { border-color: oklch(var(--ev-bl) calc(var(--ev-bc) * var(--c)) var(--h)); }
+.chip.add { --c: 0; background: none; border: 1.5px dashed var(--line); color: var(--muted); }
+.chip.add::before { display: none; }
+
+.steps { display: grid; gap: 2px; }
+.step { display: flex; align-items: center; gap: 10px; padding: 5px 4px; border-radius: 6px; }
+.step:hover { background: var(--hover); }
+.step .ev-check { --c: .2; --h: 250; margin: 0; }
+.step.done .ev-check { background: var(--accent); border-color: var(--accent); }
+.step.done .ev-check svg { opacity: 1; }
+.step.done .st-text { color: var(--muted); text-decoration: line-through; }
+.st-text { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+.x-btn { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; color: var(--muted); opacity: 0; }
+.step:hover .x-btn, .x-btn:focus-visible { opacity: 1; }
+.x-btn:hover { color: var(--danger); background: var(--surface); }
+@media (hover: none) { .x-btn { opacity: 1; } }
+.step-new { display: flex; align-items: center; gap: 10px; padding: 3px 4px; }
+.step-new .stub { flex: none; width: 16px; height: 16px; border-radius: 5px; border: 1.6px dashed var(--line); }
+.step-new .inp { height: 32px; }
+
+.timer { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--hair); border: 1px solid var(--hair); border-radius: 10px; overflow: hidden; }
+.timer > div { background: var(--surface); padding: 10px 12px; display: grid; gap: 2px; }
+.timer .big { font: 650 22px/1.1 var(--display); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.timer .full { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.btn.go { background: var(--accent); color: var(--on-accent); display: inline-flex; gap: 6px; align-items: center; }
+.btn.stop { background: var(--late); color: var(--surface); display: inline-flex; gap: 6px; align-items: center; }
+.link-btn { font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.link-btn:hover { color: var(--ink); }
+.panel-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--hair); }
+.danger-btn { color: var(--danger); font-weight: 600; font-size: 14px; padding: 8px 4px; }
+
+.cat-row { display: grid; grid-template-columns: 1fr auto; gap: 8px 6px; padding-bottom: 14px; border-bottom: 1px solid var(--hair); }
+.cat-row:last-of-type { border-bottom: 0; }
+.swatches { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
+.sw { width: 26px; height: 26px; border-radius: 50%; background: oklch(var(--ev-bl) var(--ev-bc) var(--h)); box-shadow: inset 0 0 0 6px oklch(var(--ev-fl) var(--ev-fc) var(--h) / .55); }
+.sw[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* Lasche am rechten Rand für die To-do-Liste */
+.todo-tab {
+  position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 15;
+  display: grid; justify-items: center; gap: 8px; padding: 14px 8px 12px; border-radius: 10px 0 0 10px;
+  background: var(--ink); color: var(--bg); box-shadow: -4px 4px 16px rgb(0 0 0 / .12);
+}
+.todo-tab span { writing-mode: vertical-rl; transform: rotate(180deg); font-weight: 600; font-size: 13px; letter-spacing: .02em; }
+.todo-tab:hover { padding-right: 11px; }
+@media (min-width: 621px) { body { padding-right: 52px; } }
+.todo-tab b { font-size: 11px; font-variant-numeric: tabular-nums; background: var(--bg); color: var(--ink); border-radius: 999px; min-width: 20px; padding: 1px 5px; text-align: center; }
+@media (max-width: 620px) {
+  body { padding: 20px 16px 96px; }
+  :root { --gut: 44px; }
+  .todo-tab { top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); right: 16px; transform: none; border-radius: 999px; grid-auto-flow: column; padding: 12px 16px; }
+  .todo-tab span { writing-mode: horizontal-tb; transform: none; }
+  .todo-tab:hover { padding-right: 16px; }
+}
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 40;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: 14px; max-width: calc(100% - 32px);
+  background: var(--ink); color: var(--bg); padding: 10px 12px 10px 16px; border-radius: 10px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / .18); font-size: 14px;
+}
+.toast span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toast button { font-weight: 600; color: var(--bg); text-decoration: underline; text-underline-offset: 3px; flex: none; }
+
+/* To-do-Liste im Seitenfach (gleicher Aufbau wie die Seite „To-do“) */
+.td .wrap { display: grid; gap: 16px; }
+.td .meta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.td .new { display: flex; flex-wrap: wrap; gap: 8px; background: var(--bg); border: 1px solid var(--hair); border-radius: 12px; padding: 8px; }
+.td .new input { min-width: 0; border: 0; background: transparent; font: inherit; color: var(--ink); padding: 10px 10px; border-radius: 8px; }
+.td .new input::placeholder, .td .edit input::placeholder, .td .adder input::placeholder { color: var(--muted); }
+.td .new input:focus { outline: none; background: var(--hover); }
+.td #td-new-text { flex: 3 1 200px; }
+.td #td-new-tag { flex: 1 1 120px; }
+.td .tree, .td .kids { list-style: none; margin: 0; padding: 0; }
+.td .tree > .node + .node { border-top: 1px solid var(--hair); }
+.td .node, .td .adder { position: relative; }
+.td .row {
+  position: relative; display: flex; align-items: flex-start; gap: 10px;
+  min-height: var(--row); padding: 10px 6px 10px 8px; border-radius: 8px; cursor: default;
+}
+.td .has-kids > .row { cursor: pointer; }
+.td .row:hover { background: var(--hover); }
+.td .tree > .node > .row { padding-block: 14px; }
+.td .check {
+  flex: none; width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--line);
+  display: grid; place-items: center; background: var(--surface); transition: background .15s, border-color .15s;
+}
+.td .check:hover { border-color: var(--accent); }
+.td .check svg { width: 12px; height: 12px; stroke: var(--on-accent); stroke-width: 3; fill: none; stroke-dasharray: 20; stroke-dashoffset: 20; }
+.td .done > .row .check { background: var(--accent); border-color: var(--accent); }
+.td .done > .row .check svg { stroke-dashoffset: 0; transition: stroke-dashoffset .25s ease-out .05s; }
+.td .body { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.td .text { line-height: 20px; overflow-wrap: anywhere; }
+.td .tree > .node > .row .text { font-weight: 500; font-size: 16px; }
+.td .done > .row .text { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
+.td .tag {
+  --h: 200; flex: none; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  line-height: 20px; padding: 0 9px; border-radius: 999px;
+  background: oklch(var(--chip-l) var(--chip-c) var(--h)); color: oklch(var(--chip-fl) var(--chip-fc) var(--h));
+}
+.td .done > .row .tag { opacity: .6; }
+.td .fold {
+  flex: none; display: flex; align-items: center; gap: 4px; height: 20px; padding: 0 4px 0 7px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums;
+  border: 1px solid var(--hair); background: var(--surface);
+}
+.td .fold svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.2; fill: none; transition: transform .2s ease-out; }
+.td .node:not(.closed) > .row .fold svg { transform: rotate(90deg); }
+.td .done > .row .fold { color: var(--accent); }
+.td .tools { flex: none; display: flex; gap: 2px; opacity: 0; transition: opacity .12s; margin-block: -4px; }
+.td .row:hover .tools, .td .row:focus-within .tools { opacity: 1; }
+@media (hover: none) { .td .tools { opacity: 1; } .td .grip { display: none; } }
+.td .tool { width: 28px; height: 28px; border-radius: 6px; display: grid; place-items: center; color: var(--muted); }
+.td .tool:hover { background: var(--surface); color: var(--ink); }
+.td .tool.del:hover { color: var(--danger); }
+.td .tool svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 1.9; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.td .grip { cursor: grab; }
+.td .grip svg { fill: currentColor; stroke: none; }
+.td .kids { position: relative; margin-left: 17px; padding-left: var(--indent); }
+.td .closed > .kids { display: none; }
+.td .kids > li::before, .td .kids > li::after { content: ""; position: absolute; left: calc(-1 * var(--indent)); top: -6px; border-left: 2px solid var(--line); pointer-events: none; }
+.td .kids > li::before { width: calc(var(--indent) + 2px); height: calc(var(--row) / 2 + 6px); border-bottom: 2px solid var(--line); border-bottom-left-radius: 12px; }
+.td .kids > li:not(:last-child)::after { bottom: 0; }
+.td .thread { position: absolute; left: -7px; width: 16px; top: -6px; bottom: 0; cursor: pointer; z-index: 1; }
+.td .kids:has(> .thread:hover) > li::before, .td .kids:has(> .thread:hover) > li::after { border-color: var(--accent); }
+.td .unfold { animation: unfold .22s cubic-bezier(.16, 1, .3, 1); }
+@keyframes unfold { from { opacity: 0; transform: translateY(-6px); } }
+.td .edit, .td .adder .row { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+.td .edit input, .td .adder input {
+  min-width: 0; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 6px; padding: 0 8px; height: 28px; margin-block: -4px;
+}
+.td .edit input:focus, .td .adder input:focus { outline: none; border-color: var(--accent); }
+.td .edit .e-text, .td .adder input { flex: 3 1 160px; }
+.td .edit .e-tag { flex: 1 1 100px; }
+.td .adder .row:hover { background: none; }
+.td .adder .stub { flex: none; width: 20px; height: 20px; border-radius: 6px; border: 2px dashed var(--line); }
+.td .dragging > .row { opacity: .4; }
+.td .row.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+.td .row.drop-after { box-shadow: inset 0 -2px 0 var(--accent); }
+.td .row.drop-inside { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.td .tail { height: 28px; border-radius: 8px; }
+.td .tail.drop-after { box-shadow: inset 0 2px 0 var(--accent); }
+.td .empty { color: var(--muted); padding: 20px 8px; display: grid; gap: 6px; }
+.td .empty strong { color: var(--ink); font: 650 18px/1.2 var(--display); letter-spacing: -0.01em; }
+.td .hint { color: var(--muted); font-size: 13px; margin: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title-row">
+      <div class="head-left">
+        <div class="settings">
+          <button class="icon-btn" id="set-btn" aria-label="Einstellungen" aria-expanded="false" aria-controls="set-pop"><svg class="ico" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.65" stroke-width="3.1" stroke-dasharray=".5 5.42" stroke-linecap="round"/><path fill="currentColor" fill-rule="evenodd" stroke="none" d="M8 3.1a4.9 4.9 0 1 0 0 9.8a4.9 4.9 0 1 0 0-9.8ZM8 6.4a1.6 1.6 0 1 1 0 3.2a1.6 1.6 0 1 1 0-3.2Z"/></svg></button>
+          <div class="pop" id="set-pop" hidden>
+            <span class="ov-label">Darstellung</span>
+            <div class="seg" role="group" aria-label="Darstellung"><button data-theme-set="light">Hell</button><button data-theme-set="dark">Dunkel</button><button data-theme-set="">Wie System</button></div>
+          </div>
+        </div>
+        <div>
+          <h1 id="day-title">Tagesplaner</h1>
+          <div class="sub"><span id="day-sub"></span><span id="status" class="status busy">Lädt</span></div>
+        </div>
+      </div>
+      <div class="nav">
+        <button class="icon-btn" id="prev" aria-label="Vorheriger Tag"><svg class="ico" viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></button>
+        <button class="soft-btn" id="today">Heute</button>
+        <button class="icon-btn" id="next" aria-label="Nächster Tag"><svg class="ico" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg></button>
+        <button class="soft-btn" id="cats-btn">Kategorien</button>
+      </div>
+    </div>
+    <nav class="week" id="week" aria-label="Woche"></nav>
+  </header>
+
+  <section class="overview" id="overview" aria-live="polite"></section>
+
+  <form class="quick" id="quick" autocomplete="off">
+    <input id="quick-text" placeholder="Neu: „14:30 Zahnarzt“ oder „Wäsche aufhängen“" aria-label="Neuer Eintrag" disabled>
+    <button class="btn" id="quick-btn" disabled>Eintragen</button>
+  </form>
+
+  <section class="untimed">
+    <div class="sec-label"><span>Ohne Uhrzeit</span><span id="ut-count"></span></div>
+    <div class="ut-list" id="untimed"></div>
+  </section>
+
+  <div class="timeline" id="timeline"><div class="grid" id="grid" aria-label="Zeitleiste"></div></div>
+</div>
+
+<aside class="side" id="side" aria-label="Bearbeiten"></aside>
+
+<aside class="drawer td" id="td" aria-label="To-do">
+  <div class="panel-head">
+    <h2>To-do</h2>
+    <button class="icon-btn" data-close="td" aria-label="To-do schließen"><svg class="ico" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div class="panel-body">
+    <div class="wrap">
+      <div class="meta" id="td-count"></div>
+      <form class="new" id="td-new" autocomplete="off">
+        <input id="td-new-text" placeholder="Neue Aufgabe" aria-label="Neue Aufgabe" disabled>
+        <input id="td-new-tag" placeholder="Stichwort (optional)" aria-label="Stichwort" maxlength="24" disabled>
+        <button class="btn" id="td-new-btn" disabled>Hinzufügen</button>
+      </form>
+      <ul class="tree" id="td-tree"></ul>
+      <div class="tail" id="td-tail" hidden></div>
+      <p class="hint" id="td-hint" hidden>Klick auf eine Aufgabe klappt ihre Unterpunkte auf. Am Griff rechts ziehst du Punkte an eine andere Stelle oder in eine andere Aufgabe.</p>
+    </div>
+  </div>
+</aside>
+<button class="todo-tab" id="todo-tab" aria-controls="td" aria-expanded="false"><svg class="ico" viewBox="0 0 16 16"><path d="M3 4.5h1M6.5 4.5H13M3 8h1M6.5 8H13M3 11.5h1M6.5 11.5H13"/></svg><span>To-do</span><b id="todo-open" hidden></b></button>
+
+<script>
+/*PLAN*/
+const pad = n => String(n).padStart(2, "0");
+// Datum immer aus lokalen Teilen, nie über toISOString (das wäre UTC und verrutscht um Mitternacht)
+const dayKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fromKey = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (k, n) => { const d = fromKey(k); d.setDate(d.getDate() + n); return dayKey(d); };
+const weekOf = k => { const off = (fromKey(k).getDay() + 6) % 7; return Array.from({ length: 7 }, (_, i) => addDays(k, i - off)); };
+const snap = (m, step = 15) => Math.round(m / step) * step;
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const hm = m => `${Math.floor(m / 60)}:${pad(m % 60)}`;
+const span = m => m < 60 ? `${m} Min` : `${Math.floor(m / 60)} Std${m % 60 ? " " + (m % 60) + " Min" : ""}`;
+
+// Spalten für Einträge, die sich zeitlich überschneiden (nebeneinander wie im Kalender)
+function lanes(list, minDur = 25) {
+  const ev = list.filter(e => e.start != null).map(e => ({ id: e.id, s: e.start, t: e.start + Math.max(e.dur, minDur) }))
+    .sort((a, b) => a.s - b.s || b.t - a.t);
+  const out = {};
+  let group = [], cols = [], end = -1;
+  const close = () => { for (const g of group) out[g.id] = { x: g.col / cols.length, w: 1 / cols.length }; group = []; cols = []; };
+  for (const e of ev) {
+    if (e.s >= end) close();
+    let c = cols.findIndex(t => t <= e.s);
+    if (c < 0) { c = cols.length; cols.push(0); }
+    cols[c] = e.t; e.col = c; group.push(e); end = Math.max(end, e.t);
+  }
+  close();
+  return out;
+}
+
+const elapsed = (t, now) => (t?.acc || 0) + (t?.startedAt ? now - t.startedAt : 0);
+function syncDone(e) { if (e.steps?.length) e.done = e.steps.every(s => s.done); }
+
+// Tagesbilanz: gemessene Zeit minus geplante Zeit, nur für gestoppte Messungen. Positiv = Verzug.
+function dayDelta(entries) {
+  let sum = 0, n = 0;
+  for (const e of entries) {
+    if (!e.timer || e.timer.startedAt || !(e.timer.acc > 0)) continue;
+    sum += Math.round(e.timer.acc / 60000) - e.dur; n++;
+  }
+  return { sum, n };
+}
+
+// Was gerade dran ist oder als Nächstes kommt
+function nextUp(entries, nowMin) {
+  const open = entries.filter(e => !e.done && e.start != null).sort((a, b) => a.start - b.start);
+  const cur = open.find(e => e.start <= nowMin && nowMin < e.start + e.dur);
+  if (cur) return { e: cur, state: "now" };
+  const nxt = open.find(e => e.start > nowMin);
+  return nxt ? { e: nxt, state: "next" } : null;
+}
+
+// "14:30 Zahnarzt", "9 Uhr Training", "14.30 Uhr Arzt" -> mit Uhrzeit; sonst ohne
+function parseQuick(text) {
+  const t = text.trim();
+  const m = t.match(/^(\d{1,2})(?:[:.](\d{2})(?:\s*uhr)?|\s*uhr)\s+(.+)$/i);
+  if (m && +m[1] < 24 && +(m[2] || 0) < 60) return { title: m[3].trim(), start: +m[1] * 60 + +(m[2] || 0) };
+  return { title: t, start: null };
+}
+/*END PLAN*/
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const clone = v => JSON.parse(JSON.stringify(v));
+const native = window.AndroidStore;   // in der Android-App: jede Änderung sofort als Datei der App speichern
+const store = {
+  get(k, d) { try { const v = native ? native.get(k) : localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { const s = JSON.stringify(v); if (native) return native.set(k, s) !== false; localStorage.setItem(k, s); return true; } catch { return false; } },
+};
+const CHECK = '<svg viewBox="0 0 12 12"><path d="M2 6.5 4.8 9 10 3"/></svg>';
+const PIN = '<svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.6"/><path d="M6 3.6V6l1.6 1"/></svg>';
+const X = '<svg class="ico" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+const HUES = [{ h: 25, n: "Rot" }, { h: 55, n: "Orange" }, { h: 88, n: "Ocker" }, { h: 145, n: "Grün" }, { h: 190, n: "Petrol" }, { h: 245, n: "Blau" }, { h: 290, n: "Violett" }, { h: 345, n: "Rosa" }];
+const DURS = [5, 10, 15, 20, 30, 45, 60, 75, 90, 120, 150, 180, 240];
+
+function status(text, kind = "") { const s = $("#status"); s.textContent = text; s.className = "status " + kind; }
+
+let undo = null;
+function toast(msg, onUndo) {
+  document.querySelector(".toast")?.remove();
+  clearTimeout(undo?.timer);
+  const t = document.createElement("div");
+  t.className = "toast"; t.setAttribute("role", "status");
+  t.innerHTML = `<span>${esc(msg)}</span><button>Rückgängig</button>`;
+  t.querySelector("button").onclick = () => { onUndo(); t.remove(); };
+  document.body.append(t);
+  undo = { timer: setTimeout(() => t.remove(), 7000) };
+}
+
+/* Speichern: je Dokument verzögert, immer nur ein Schreibvorgang zugleich.
+   Fremde Stände werden zurückgestellt, solange hier gerade getippt oder gezogen wird. */
+let db = null;
+function syncDoc(path, { empty, busy = () => false, changed }) {
+  const s = { data: clone(empty), ready: false, timer: null, writing: false, dirty: false, pending: null, ref: db ? db.doc(path) : null };
+  const lsKey = "tagesplaner." + path;
+  async function flush() {
+    s.timer = null;
+    if (s.writing) { s.dirty = true; return; }
+    s.writing = true;
+    const body = clone(s.data);
+    try { await s.ref.set(body); status("Gespeichert"); }
+    catch (e) { status(e?.code === "quota_exceeded" ? "Speicher voll" : "Nicht gespeichert, nächste Änderung versucht es neu", "warn"); }
+    s.writing = false;
+    if (s.dirty) { s.dirty = false; flush(); }
+  }
+  s.save = () => {
+    s.pending = null;
+    if (!s.ref) { if (!store.set(lsKey, s.data)) status("Nicht gespeichert, Speicherplatz prüfen", "warn"); return; }
+    status("Speichert", "busy");
+    clearTimeout(s.timer);
+    s.timer = setTimeout(flush, 400);
+  };
+  s.apply = data => {
+    if (JSON.stringify(data) === JSON.stringify(s.data)) return;
+    if (s.timer || s.writing) return;     // eigener Stand ist neuer und wird gleich geschrieben
+    if (busy()) { s.pending = data; return; }
+    s.data = clone(data); s.pending = null;
+    changed();
+  };
+  s.settle = () => { if (s.pending && !busy()) s.apply(s.pending); };
+  s.close = () => { s.unsub?.(); clearTimeout(slow); if (s.timer) { clearTimeout(s.timer); flush(); } };
+  let slow = null;
+  if (!s.ref) { s.data = store.get(lsKey, clone(empty)); s.ready = true; return s; }
+  slow = setTimeout(() => status("Daten noch nicht erreichbar", "warn"), 10000);
+  s.unsub = s.ref.onSnapshot(snap => {
+    if (!snap.exists) {
+      if (snap.metadata.fromCache) return;   // erst die echte Antwort abwarten, sonst überschreibt ein leerer Stand die Daten
+      clearTimeout(slow);
+      if (!s.ready) { s.ready = true; status("Gespeichert"); changed(); }
+      return;
+    }
+    if (!snap.metadata.fromCache) clearTimeout(slow);
+    if (!s.ready) { s.data = clone(snap.data()); s.ready = true; status("Gespeichert"); changed(); return; }
+    s.apply(snap.data());
+  }, () => { clearTimeout(slow); status("Verbindung verloren, Änderungen bleiben nur bis zum Neuladen", "warn"); });
+  return s;
+}
+
+/* ---------- Tagesplaner ---------- */
+const todayKey = () => dayKey(new Date());
+const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+let cur = todayKey();
+let day = null;        // Dokument des angezeigten Tags: { entries: [...] }
+let cats = null;       // Dokument der Kategorien: { list: [{ id, name, hue }] }
+let side = null;       // { mode: "edit", id, fresh } oder { mode: "cats" }
+let drag = null;
+const entries = () => day?.data.entries || [];
+const findEntry = id => entries().find(e => e.id === id);
+const catOf = e => (cats?.data.list || []).find(c => c.id === e.cat) || null;
+const colorAttr = c => c ? `style="--h:${c.hue}"` : "";
+
+function typing() {
+  const a = document.activeElement;
+  return !!a && $("#side").contains(a) && a.matches("input:not([type=checkbox]), select");
+}
+const planBusy = () => !!drag || typing();
+
+function openDay(k) {
+  if (side?.mode === "edit") closeSide();   // vor dem Wechsel, sonst landet ein offener Entwurf im falschen Tag
+  day?.close();
+  cur = k;
+  day = syncDoc("tage/" + k, { empty: { entries: [] }, busy: planBusy, changed: () => { renderDay(); if (side?.mode === "edit") { findEntry(side.id) ? renderSide() : closeSide(); } } });
+  renderDay();
+  scrollToNow();
+}
+function scrollToNow() {
+  const tl = $("#timeline");
+  const m = cur === todayKey() ? nowMin() - 60 : (entries().filter(e => e.start != null).map(e => e.start).sort((a, b) => a - b)[0] ?? 8 * 60) - 30;
+  tl.scrollTop = Math.max(0, m) / 60 * parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hour"));
+}
+
+function commitDay() { entries().forEach(syncDone); day.save(); renderDay(); }
+
+function evInner(e, now) {
+  const c = catOf(e);
+  const steps = e.steps?.length ? `<span>${e.steps.filter(s => s.done).length}/${e.steps.length} Schritte</span>` : "";
+  const time = e.start != null ? `<span>${hm(e.start)}–${hm(Math.min(e.start + e.dur, 1440))}</span>` : `<span>${span(e.dur)}</span>`;
+  const run = e.timer?.startedAt ? `<span class="run" data-run="${e.id}">${clock(elapsed(e.timer, now))}</span>` : "";
+  return `<button class="ev-check" data-act="check" role="checkbox" aria-checked="${!!e.done}" aria-label="Erledigt">${CHECK}</button>
+    <div class="ev-main"><span class="ev-title">${e.kind === "termin" ? PIN : ""}${esc(e.title || "Ohne Titel")}</span>
+    <span class="ev-meta">${time}${c ? `<span>${esc(c.name)}</span>` : ""}${steps}${run}</span></div>`;
+}
+const evClass = e => `ev${catOf(e) ? "" : " neutral"}${e.done ? " done" : ""}${e.kind === "termin" ? " termin" : ""}`;
+
+function renderDay() {
+  const now = Date.now(), isToday = cur === todayKey();
+  const d = fromKey(cur);
+  $("#day-title").textContent = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long" }).format(d);
+  const rel = isToday ? "Heute" : cur === addDays(todayKey(), 1) ? "Morgen" : cur === addDays(todayKey(), -1) ? "Gestern" : `KW ${isoWeek(d)}`;
+  $("#day-sub").textContent = `${rel} · ${d.getFullYear()}`;
+  $("#week").innerHTML = weekOf(cur).map((k, i) => `<button class="wd${k === cur ? " sel" : ""}${k === todayKey() ? " today" : ""}" data-day="${k}" aria-current="${k === cur ? "date" : "false"}">${["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"][i]}<b>${fromKey(k).getDate()}</b></button>`).join("");
+
+  const ready = day.ready;
+  for (const id of ["#quick-text", "#quick-btn"]) $(id).disabled = !ready;
+  const list = entries();
+
+  // Ohne Uhrzeit
+  const ut = list.filter(e => e.start == null);
+  $("#ut-count").textContent = ut.length ? `${ut.filter(e => e.done).length}/${ut.length}` : "";
+  $("#untimed").innerHTML = ut.length
+    ? ut.map(e => `<div class="${evClass(e)}" data-ev="${e.id}" ${colorAttr(catOf(e))}>${evInner(e, now)}</div>`).join("")
+    : `<div class="ut-empty">${ready ? "Aufgaben ohne feste Uhrzeit landen hier." : "Lädt …"}</div>`;
+
+  // Zeitleiste
+  const pos = lanes(list);
+  const H = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hour"));
+  let html = "";
+  for (let h = 1; h < 24; h++) html += `<span class="hl" style="top:${h * H}px">${pad(h)}:00</span>`;
+  for (const e of list.filter(e => e.start != null)) {
+    const p = pos[e.id], top = e.start / 60 * H, ht = Math.max(e.dur / 60 * H, 22);
+    html += `<div class="${evClass(e)}${ht < 40 ? " short" : ""}" data-ev="${e.id}" style="${catOf(e) ? `--h:${catOf(e).hue};` : ""}top:${top}px;height:${ht}px;--x:${p.x};--w:${p.w}">${evInner(e, now)}<span class="resize" data-act="resize" aria-hidden="true"></span></div>`;
+  }
+  if (isToday) html += `<div class="now" style="top:${nowMin() / 60 * H}px"></div>`;
+  html += `<div class="ghost" id="ghost"></div>`;
+  $("#grid").innerHTML = html;
+  renderOverview();
+}
+
+function isoWeek(d) {
+  const t = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 3 - (d.getDay() + 6) % 7);
+  const w1 = new Date(t.getFullYear(), 0, 4);
+  return 1 + Math.round(((t - w1) / 864e5 - 3 + (w1.getDay() + 6) % 7) / 7);
+}
+
+function renderOverview() {
+  const list = entries(), isToday = cur === todayKey();
+  const done = list.filter(e => e.done).length;
+  let first;
+  if (!day.ready) first = `<div class="ov"><span class="ov-label">Als Nächstes</span><span class="ov-main">Lädt …</span></div>`;
+  else if (isToday) {
+    const n = nextUp(list, nowMin());
+    if (n) {
+      const c = catOf(n.e);
+      const left = n.state === "now" ? `läuft bis ${hm(n.e.start + n.e.dur)}, noch ${span(n.e.start + n.e.dur - nowMin())}` : `um ${hm(n.e.start)}, in ${span(n.e.start - nowMin())}`;
+      first = `<button class="ov ov-next" data-open="${n.e.id}" style="${c ? `--h:${c.hue}` : "--c:.2;--h:250"}"><span class="ov-label">${n.state === "now" ? "Jetzt dran" : "Als Nächstes"}</span><span class="ov-main"><span class="dot"></span>${esc(n.e.title || "Ohne Titel")}</span><span class="ov-sub">${left}</span></button>`;
+    } else {
+      const open = list.filter(e => !e.done && e.start == null).length;
+      first = `<div class="ov"><span class="ov-label">Als Nächstes</span><span class="ov-main">${list.length ? "Keine Termine mehr heute" : "Noch nichts geplant"}</span><span class="ov-sub">${open ? `${open} ohne Uhrzeit offen` : "Trag oben etwas ein oder klick in die Zeitleiste."}</span></div>`;
+    }
+  } else {
+    const timed = list.filter(e => e.start != null).sort((a, b) => a.start - b.start);
+    first = `<div class="ov"><span class="ov-label">Geplant</span><span class="ov-main">${list.length ? `${list.length} ${list.length === 1 ? "Eintrag" : "Einträge"}` : "Noch nichts geplant"}</span><span class="ov-sub">${timed.length ? `erster um ${hm(timed[0].start)}` : "Trag oben etwas ein oder klick in die Zeitleiste."}</span></div>`;
+  }
+  const { sum, n } = dayDelta(list);
+  const bilanz = n
+    ? `<span class="ov-main ${sum > 0 ? "late" : "saved"}">${sum === 0 ? "genau im Plan" : `${span(Math.abs(sum))} ${sum > 0 ? "Verzug" : "gespart"}`}</span><span class="ov-sub">aus ${n} gemessenen ${n === 1 ? "Eintrag" : "Einträgen"}</span>`
+    : `<span class="ov-main">noch nichts gemessen</span><span class="ov-sub">Timer im Eintrag starten</span>`;
+  $("#overview").innerHTML = `${first}
+    <div class="ov"><span class="ov-label">Erledigt</span><span class="ov-main">${done} von ${list.length}</span><div class="bar"><i style="width:${list.length ? done / list.length * 100 : 0}%"></i></div></div>
+    <div class="ov"><span class="ov-label">Zeitbilanz</span>${bilanz}</div>`;
+}
+
+// Laufende Timer und die Jetzt-Linie ohne Schreiben aktualisieren
+setInterval(() => {
+  const now = Date.now();
+  document.querySelectorAll("[data-run]").forEach(el => { const e = findEntry(el.dataset.run); if (e) el.textContent = clock(elapsed(e.timer, now)); });
+  const t = document.querySelector("[data-tick]");
+  if (t) { const e = findEntry(t.dataset.tick); if (e) t.textContent = clock(elapsed(e.timer, now)); }
+}, 1000);
+setInterval(() => { if (!drag && day) { renderOverview(); const nl = $(".now"); if (nl) nl.style.top = nowMin() / 60 * parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hour")) + "px"; } }, 30000);
+const clock = ms => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 3600) ? Math.floor(s / 3600) + ":" : ""}${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`; };
+
+/* Eintragen */
+function newEntry(fields) {
+  return { id: uid(), title: "", kind: "aufgabe", start: null, dur: 30, cat: null, done: false, steps: [], timer: null, ...fields };
+}
+$("#quick").addEventListener("submit", e => {
+  e.preventDefault();
+  if (!day.ready) return;
+  const { title, start } = parseQuick($("#quick-text").value);
+  if (!title) return;
+  entries().push(newEntry({ title, start }));
+  $("#quick-text").value = "";
+  commitDay();
+  $("#quick-text").focus();
+});
+
+function toggleEntry(id) {
+  const e = findEntry(id);
+  if (!e) return;
+  const v = !e.done;
+  e.done = v;
+  e.steps?.forEach(s => { s.done = v; });
+  if (v && e.timer?.startedAt) stopTimer(e);
+  commitDay();
+  if (side?.mode === "edit" && side.id === id) renderSide();
+}
+
+/* Zeitleiste: klicken legt an, ziehen verschiebt, unterer Rand ändert die Dauer */
+const H = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hour"));
+const gridMin = y => clamp(Math.floor((y - $("#grid").getBoundingClientRect().top) / H() * 2) * 30, 0, 1410);
+
+$("#grid").addEventListener("pointerdown", e => {
+  if (e.button !== 0 || !day.ready) return;
+  const el = e.target.closest("[data-ev]");
+  if (!el || e.target.closest("[data-act=check]")) return;
+  const en = findEntry(el.dataset.ev);
+  drag = { id: en.id, el, mode: e.target.closest("[data-act=resize]") ? "resize" : "move", y0: e.clientY, start: en.start, dur: en.dur, moved: false, touch: e.pointerType === "touch" };
+  if (!drag.touch) { el.setPointerCapture(e.pointerId); e.preventDefault(); }
+});
+$("#grid").addEventListener("pointermove", e => {
+  if (!drag) { const g = $("#ghost"); if (g && !e.target.closest("[data-ev]")) { g.classList.add("on"); g.style.top = gridMin(e.clientY) / 60 * H() + "px"; g.style.height = H() / 2 + "px"; } else g?.classList.remove("on"); return; }
+  if (drag.touch) return;   // am Handy wird über den Eintrag geändert, nicht gezogen
+  const dy = e.clientY - drag.y0;
+  if (!drag.moved && Math.abs(dy) < 4) return;
+  drag.moved = true;
+  drag.el.classList.add("lifted");
+  const dm = snap(dy / H() * 60);
+  if (drag.mode === "move") { drag.ns = clamp(drag.start + dm, 0, 1440 - drag.dur); drag.nd = drag.dur; drag.el.style.top = drag.ns / 60 * H() + "px"; }
+  else { drag.ns = drag.start; drag.nd = clamp(drag.dur + dm, 15, 1440 - drag.start); drag.el.style.height = Math.max(drag.nd / 60 * H(), 22) + "px"; }
+  const meta = drag.el.querySelector(".ev-meta span");
+  if (meta) meta.textContent = `${hm(drag.ns)}–${hm(drag.ns + drag.nd)}`;
+});
+$("#grid").addEventListener("pointerleave", () => $("#ghost")?.classList.remove("on"));
+function endDrag(e, cancel) {
+  if (!drag) return;
+  const d = drag;
+  drag = null;
+  if (d.moved && !cancel) {
+    const en = findEntry(d.id);
+    if (en) { en.start = d.ns; en.dur = d.nd; commitDay(); if (side?.mode === "edit" && side.id === d.id) renderSide(); }
+  } else if (!d.moved && !cancel) openEditor(d.id);
+  else renderDay();
+  day.settle();
+}
+$("#grid").addEventListener("pointerup", e => endDrag(e, false));
+$("#grid").addEventListener("pointercancel", e => endDrag(e, true));
+$("#grid").addEventListener("click", e => {
+  const chk = e.target.closest("[data-act=check]");
+  if (chk) { toggleEntry(chk.closest("[data-ev]").dataset.ev); return; }
+  if (e.target.closest("[data-ev]") || !day.ready) return;
+  const en = newEntry({ start: gridMin(e.clientY) });
+  entries().push(en);
+  commitDay();
+  openEditor(en.id, true);
+});
+$("#untimed").addEventListener("click", e => {
+  const el = e.target.closest("[data-ev]");
+  if (!el) return;
+  if (e.target.closest("[data-act=check]")) toggleEntry(el.dataset.ev);
+  else openEditor(el.dataset.ev);
+});
+$("#overview").addEventListener("click", e => { const b = e.target.closest("[data-open]"); if (b) openEditor(b.dataset.open); });
+$("#week").addEventListener("click", e => { const b = e.target.closest("[data-day]"); if (b && b.dataset.day !== cur) openDay(b.dataset.day); });
+$("#prev").onclick = () => openDay(addDays(cur, -1));
+$("#next").onclick = () => openDay(addDays(cur, 1));
+$("#today").onclick = () => { if (cur !== todayKey()) openDay(todayKey()); else scrollToNow(); };
+
+/* Timer */
+function startTimer(e) {
+  for (const o of entries()) if (o !== e && o.timer?.startedAt) stopTimer(o);
+  e.timer = { acc: e.timer?.acc || 0, startedAt: Date.now() };
+}
+function stopTimer(e) { e.timer = { acc: elapsed(e.timer, Date.now()), startedAt: null }; }
+
+/* Seitenleiste: Eintrag bearbeiten oder Kategorien verwalten */
+function openEditor(id, fresh = false) { if (side?.mode === "edit" && side.id !== id) closeSide(); side = { mode: "edit", id, fresh }; closeTodo(); renderSide(); $("#side").classList.add("open"); if (fresh) $("#ed-title")?.focus(); }
+function openCats() { if (side?.mode === "edit") closeSide(); side = { mode: "cats" }; closeTodo(); renderSide(); $("#side").classList.add("open"); }
+function closeSide() {
+  if (!side) return;
+  if (side.mode === "edit") {
+    const pend = $("#ed-step-new")?.value.trim();
+    const e = findEntry(side.id);
+    if (e && pend) { e.steps.push({ id: uid(), text: pend, done: false }); }
+    if (e && side.fresh && !e.title.trim()) day.data.entries = entries().filter(x => x !== e);   // leerer neuer Eintrag wird verworfen
+    if (e) commitDay();
+  }
+  side = null;
+  $("#side").classList.remove("open");
+  $("#side").innerHTML = "";
+  $("#cats-btn").setAttribute("aria-pressed", "false");
+  day.settle(); cats.settle();
+}
+
+function renderSide() {
+  const el = $("#side");
+  if (side.mode === "cats") {
+    $("#cats-btn").setAttribute("aria-pressed", "true");
+    const list = cats.data.list;
+    el.innerHTML = `<div class="panel-head"><h2>Kategorien</h2><button class="icon-btn" data-close="side" aria-label="Schließen">${X}</button></div>
+      <div class="panel-body">
+        ${list.map(c => `<div class="cat-row" data-cat="${c.id}">
+          <input class="inp" data-cat-name value="${esc(c.name)}" aria-label="Name der Kategorie" maxlength="28">
+          <button class="icon-btn" data-cat-del aria-label="Kategorie löschen"><svg class="ico" viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button>
+          <div class="swatches">${HUES.map(h => `<button class="sw" style="--h:${h.h}" data-hue="${h.h}" aria-pressed="${c.hue === h.h}" aria-label="${h.n}"></button>`).join("")}</div>
+        </div>`).join("") || `<p class="ut-empty">Noch keine Kategorien. Leg eine an, zum Beispiel Arbeit, Haushalt oder Sport.</p>`}
+        <button class="soft-btn" data-cat-add style="justify-self:start">Neue Kategorie</button>
+        <p class="ut-empty">Einträge nehmen die Farbe ihrer Kategorie an. Wird eine Kategorie gelöscht, bleiben ihre Einträge erhalten und werden grau.</p>
+      </div>`;
+    return;
+  }
+  const e = findEntry(side.id);
+  if (!e) { closeSide(); return; }
+  const list = cats.data.list;
+  const now = Date.now();
+  const used = elapsed(e.timer, now);
+  const running = !!e.timer?.startedAt;
+  const diff = used ? Math.round(used / 60000) - e.dur : 0;
+  const durs = DURS.includes(e.dur) ? DURS : [...DURS, e.dur].sort((a, b) => a - b);
+  const quarter = Array.from({ length: 96 }, (_, i) => i * 15);   // Beginn im Viertelstunden-Takt
+  const starts = e.start == null || quarter.includes(e.start) ? quarter : [...quarter, e.start].sort((a, b) => a - b);
+  el.innerHTML = `<div class="panel-head"><h2>${e.kind === "termin" ? "Termin" : "Aufgabe"}</h2><button class="icon-btn" data-close="side" aria-label="Schließen">${X}</button></div>
+    <div class="panel-body">
+      <div class="field"><label for="ed-title">Titel</label><input class="inp big" id="ed-title" value="${esc(e.title)}" placeholder="Was steht an?" autocomplete="off"></div>
+      <div class="seg" role="group" aria-label="Art"><button data-kind="aufgabe" aria-pressed="${e.kind !== "termin"}">Aufgabe</button><button data-kind="termin" aria-pressed="${e.kind === "termin"}">Termin</button></div>
+      <div class="field">
+        <span class="lbl">Zeit</span>
+        <label class="switch"><input type="checkbox" id="ed-timed" ${e.start != null ? "checked" : ""}> Feste Uhrzeit</label>
+        <div class="time-row">
+          ${e.start != null ? `<select class="inp" id="ed-start" aria-label="Beginn">${starts.map(m => `<option value="${m}" ${m === e.start ? "selected" : ""}>${hm(m)} Uhr</option>`).join("")}</select>` : ""}
+          <select class="inp" id="ed-dur" aria-label="Geplante Dauer">${durs.map(d => `<option value="${d}" ${d === e.dur ? "selected" : ""}>${span(d)}</option>`).join("")}</select>
+          ${e.start != null ? `<span class="ov-sub">bis ${hm(Math.min(e.start + e.dur, 1440))}</span>` : ""}
+        </div>
+      </div>
+      <div class="field"><span class="lbl">Kategorie</span><div class="chips">
+        <button class="chip neutral" data-setcat="" aria-pressed="${!catOf(e)}">Keine</button>
+        ${list.map(c => `<button class="chip" style="--h:${c.hue}" data-setcat="${c.id}" aria-pressed="${e.cat === c.id}">${esc(c.name)}</button>`).join("")}
+        <button class="chip add" data-cats>Kategorien bearbeiten</button>
+      </div></div>
+      <div class="field"><span class="lbl">Schritte${e.steps.length ? ` · ${e.steps.filter(s => s.done).length}/${e.steps.length}` : ""}</span>
+        <div class="steps">
+          ${e.steps.map(s => `<div class="step${s.done ? " done" : ""}" data-step="${s.id}"><button class="ev-check" data-step-check role="checkbox" aria-checked="${s.done}" aria-label="Schritt erledigt">${CHECK}</button><span class="st-text">${esc(s.text)}</span><button class="x-btn" data-step-del aria-label="Schritt entfernen">${X}</button></div>`).join("")}
+          <div class="step-new"><span class="stub"></span><input class="inp" id="ed-step-new" placeholder="Kleiner Schritt, Enter für den nächsten" aria-label="Neuer Schritt" autocomplete="off"></div>
+        </div>
+      </div>
+      <div class="field"><span class="lbl">Timer</span>
+        <div class="timer">
+          <div><span class="ov-label">Geplant</span><span class="big">${span(e.dur)}</span></div>
+          <div><span class="ov-label">Gebraucht</span><span class="big" ${running ? `data-tick="${e.id}"` : ""}>${running ? clock(used) : used >= 60000 ? span(Math.round(used / 60000)) : used ? "unter 1 Min" : "–"}</span></div>
+          <div class="full">
+            ${running ? `<button class="btn stop" data-timer="stop"><svg class="ico" viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" rx="1.5"/></svg>Stoppen</button>`
+              : `<button class="btn go" data-timer="start"><svg class="ico" viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg>${used ? "Weiter messen" : "Timer starten"}</button>`}
+            ${!running && used ? `<span class="ov-sub ${diff > 0 ? "late" : "saved"}">${diff === 0 ? "genau im Plan" : `${span(Math.abs(diff))} ${diff > 0 ? "länger" : "schneller"} als geplant`}</span>` : ""}
+            ${!running && used ? `<button class="link-btn" data-timer="reset">Messung löschen</button>` : ""}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel-foot"><button class="danger-btn" data-del>Löschen</button><button class="btn" data-close="side">Fertig</button></div>`;
+}
+
+$("#side").addEventListener("click", ev => {
+  const t = ev.target;
+  if (t.closest("[data-close]")) { closeSide(); return; }
+  if (side?.mode === "cats") {
+    if (!cats.ready) return;   // erst nach dem Laden ändern, sonst überschreibt ein leerer Stand die Kategorien
+    const row = t.closest("[data-cat]");
+    const list = cats.data.list;
+    if (t.closest("[data-cat-add]")) {
+      const used = new Set(list.map(c => c.hue));
+      const hue = (HUES.find(h => !used.has(h.h)) || HUES[list.length % HUES.length]).h;
+      list.push({ id: uid(), name: "Neue Kategorie", hue });
+      cats.save(); renderSide(); renderDay();
+      const inp = $("#side").querySelector(".cat-row:last-of-type [data-cat-name]");
+      inp?.focus(); inp?.select();
+      return;
+    }
+    if (!row) return;
+    const c = list.find(x => x.id === row.dataset.cat);
+    if (t.closest("[data-hue]")) { c.hue = +t.closest("[data-hue]").dataset.hue; cats.save(); renderSide(); renderDay(); return; }
+    if (t.closest("[data-cat-del]")) {
+      const i = list.indexOf(c);
+      list.splice(i, 1); cats.save(); renderSide(); renderDay();
+      toast(`Kategorie „${c.name}“ gelöscht`, () => { cats.data.list.splice(Math.min(i, cats.data.list.length), 0, c); cats.save(); if (side?.mode === "cats") renderSide(); renderDay(); });
+    }
+    return;
+  }
+  const e = findEntry(side?.id);
+  if (!e) return;
+  if (t.closest("[data-cats]")) { openCats(); return; }
+  if (t.closest("[data-kind]")) { e.kind = t.closest("[data-kind]").dataset.kind; commitDay(); renderSide(); return; }
+  if (t.closest("[data-setcat]")) { e.cat = t.closest("[data-setcat]").dataset.setcat || null; commitDay(); renderSide(); return; }
+  const st = t.closest("[data-step]");
+  if (st) {
+    const s = e.steps.find(x => x.id === st.dataset.step);
+    if (t.closest("[data-step-check]")) { s.done = !s.done; if (e.done && !s.done) e.done = false; }
+    else if (t.closest("[data-step-del]")) e.steps = e.steps.filter(x => x !== s);
+    else return;
+    if (!e.steps.length) e.done = false;
+    commitDay(); renderSide();
+    return;
+  }
+  const tm = t.closest("[data-timer]")?.dataset.timer;
+  if (tm === "start") { startTimer(e); commitDay(); renderSide(); return; }
+  if (tm === "stop") { stopTimer(e); commitDay(); renderSide(); return; }
+  if (tm === "reset") { e.timer = null; commitDay(); renderSide(); return; }
+  if (t.closest("[data-del]")) {
+    const i = entries().indexOf(e);
+    day.data.entries = entries().filter(x => x !== e);
+    const k = cur;
+    side.fresh = false;
+    closeSide();
+    commitDay();
+    if (!e.title.trim()) return;
+    toast(`„${e.title}“ gelöscht`, () => { if (cur !== k) return; entries().splice(Math.min(i, entries().length), 0, e); commitDay(); });
+  }
+});
+$("#side").addEventListener("input", ev => {
+  const t = ev.target;
+  if (side?.mode === "cats" && t.matches("[data-cat-name]")) {
+    const c = cats.data.list.find(x => x.id === t.closest("[data-cat]").dataset.cat);
+    c.name = t.value.trim() || "Ohne Namen"; cats.save(); renderDay();
+    return;
+  }
+  const e = findEntry(side?.id);
+  if (!e) return;
+  if (t.id === "ed-title") { e.title = t.value; day.save(); renderDay(); }
+});
+$("#side").addEventListener("change", ev => {
+  const t = ev.target, e = findEntry(side?.id);
+  if (!e) return;
+  if (t.id === "ed-timed") { e.start = t.checked ? clamp(snap(cur === todayKey() ? nowMin() + 15 : 9 * 60, 30), 0, 1440 - e.dur) : null; commitDay(); renderSide(); }
+  if (t.id === "ed-start") { e.start = clamp(+t.value, 0, 1440 - e.dur); commitDay(); renderSide(); }
+  if (t.id === "ed-dur") { e.dur = +t.value; if (e.start != null) e.start = Math.min(e.start, 1440 - e.dur); commitDay(); renderSide(); }
+});
+$("#side").addEventListener("keydown", ev => {
+  if (ev.target.id === "ed-step-new" && ev.key === "Enter") {
+    ev.preventDefault();
+    const text = ev.target.value.trim(), e = findEntry(side?.id);
+    if (!text || !e) return;
+    e.steps.push({ id: uid(), text, done: false });
+    if (e.done) e.done = false;
+    commitDay(); renderSide();
+    $("#ed-step-new").focus();
+  }
+  if (ev.target.id === "ed-title" && ev.key === "Enter") { ev.preventDefault(); $("#ed-step-new")?.focus(); }
+});
+$("#side").addEventListener("focusout", () => setTimeout(() => { day.settle(); cats.settle(); }));
+$("#cats-btn").onclick = () => side?.mode === "cats" ? closeSide() : openCats();
+
+/* To-do-Fach */
+function openTodo() { if (side) closeSide(); $("#td").classList.add("open"); $("#todo-tab").setAttribute("aria-expanded", "true"); store.set("tagesplaner.todoOffen", true); $("#td-new-text").disabled || $("#td-new-text").focus(); }
+function closeTodo() { $("#td").classList.remove("open"); $("#todo-tab").setAttribute("aria-expanded", "false"); store.set("tagesplaner.todoOffen", false); }
+$("#todo-tab").onclick = () => $("#td").classList.contains("open") ? closeTodo() : openTodo();
+$("#td").querySelector("[data-close]").onclick = closeTodo;
+/* Einstellungen: Hell, Dunkel oder wie das System. Die Wahl gilt nur in diesem Browser. */
+let hostTheme = document.documentElement.getAttribute("data-theme");
+let themeChoice = store.get("tagesplaner.theme", "");
+function applyTheme() {
+  const v = themeChoice || hostTheme;
+  if (v) document.documentElement.setAttribute("data-theme", v); else document.documentElement.removeAttribute("data-theme");
+  document.querySelectorAll("[data-theme-set]").forEach(b => b.setAttribute("aria-pressed", b.dataset.themeSet === themeChoice));
+}
+new MutationObserver(() => {
+  const now = document.documentElement.getAttribute("data-theme");
+  if (!themeChoice) hostTheme = now;                 // der Viewer stellt sein Design um
+  else if (now !== themeChoice) applyTheme();        // eigene Wahl bleibt
+}).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+applyTheme();
+const setPop = (open) => { $("#set-pop").hidden = !open; $("#set-btn").setAttribute("aria-expanded", open); };
+$("#set-btn").onclick = e => { e.stopPropagation(); setPop($("#set-pop").hidden); };
+$("#set-pop").addEventListener("click", e => {
+  const b = e.target.closest("[data-theme-set]");
+  if (!b) return;
+  themeChoice = b.dataset.themeSet;
+  store.set("tagesplaner.theme", themeChoice);
+  applyTheme();
+});
+document.addEventListener("click", e => { if (!e.target.closest(".settings")) setPop(false); });
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("#set-pop").hidden) { setPop(false); return; }
+  if (e.key !== "Escape" || e.target.closest?.("#td-tree")) return;
+  if (side) closeSide(); else if ($("#td").classList.contains("open")) closeTodo();
+});
+
+/* ---------- To-do-Liste (gleich wie die Seite „To-do“, eigene Daten) ---------- */
+function initTodo() {
+/*LOGIC*/
+const STOP = new Set("der die das den dem des ein eine einen einem einer und oder mit für fuer von vom zum zur im in am an auf aus bei nach über unter vor bis ich du wir mir mich dir dich mal noch auch nicht neue neuen neues alle bitte endlich morgen heute".split(" "));
+
+function guessTag(text) {
+  const words = (String(text).match(/[\p{L}\p{N}][\p{L}\p{N}-]*/gu) || []).filter(w => w.length > 2 && !STOP.has(w.toLowerCase()));
+  const pick = words.find(w => /^\p{Lu}/u.test(w)) || [...words].sort((a, b) => b.length - a.length)[0] || "Aufgabe";
+  return (pick[0].toUpperCase() + pick.slice(1)).slice(0, 20);
+}
+
+// Haken einer Aufgabe mit Unterpunkten ergibt sich immer aus den Unterpunkten.
+function normalize(list) {
+  for (const n of list) {
+    if (n.children.length) { normalize(n.children); n.done = n.children.every(c => c.done); }
+  }
+  return list;
+}
+function setDone(n, v) { n.done = v; n.children.forEach(c => setDone(c, v)); }
+
+function locate(list, id, parent = null) {
+  for (let i = 0; i < list.length; i++) {
+    const n = list[i];
+    if (n.id === id) return { node: n, list, index: i, parent };
+    const r = locate(n.children, id, n);
+    if (r) return r;
+  }
+  return null;
+}
+function contains(n, id) { return n.id === id || n.children.some(c => contains(c, id)); }
+
+// pos: "before" | "after" | "inside" (ans Ende) | "first" (an den Anfang); targetId null = ans Ende der obersten Ebene
+function move(items, dragId, targetId, pos) {
+  const from = locate(items, dragId);
+  if (!from) return false;
+  if (targetId !== null) {
+    const to = locate(items, targetId);
+    if (!to || contains(from.node, targetId)) return false;
+  }
+  from.list.splice(from.index, 1);
+  let topLevel;
+  if (targetId === null) { items.push(from.node); topLevel = true; }
+  else {
+    const t = locate(items, targetId);
+    if (pos === "inside") { t.node.children.push(from.node); topLevel = false; }
+    else if (pos === "first") { t.node.children.unshift(from.node); topLevel = false; }
+    else { t.list.splice(t.index + (pos === "after" ? 1 : 0), 0, from.node); topLevel = t.parent === null; }
+  }
+  if (topLevel && !from.node.tag) { from.node.tag = guessTag(from.node.text); from.node.tagAuto = true; }
+  normalize(items);
+  return true;
+}
+/*END*/
+
+const hue = s => { let h = 0; for (const c of String(s).toLowerCase()) h = (h * 31 + c.codePointAt(0)) % 360; return h; };
+const ICON = {
+  check: '<svg viewBox="0 0 12 12"><path d="M2 6.5 4.8 9 10 3"/></svg>',
+  chev: '<svg viewBox="0 0 12 12"><path d="M4.5 2.5 8 6l-3.5 3.5"/></svg>',
+  plus: '<svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>',
+  edit: '<svg viewBox="0 0 16 16"><path d="M10.5 2.5l3 3L6 13H3v-3z"/></svg>',
+  del: '<svg viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg>',
+  grip: '<svg viewBox="0 0 16 16"><circle cx="6" cy="4" r="1.3"/><circle cx="10" cy="4" r="1.3"/><circle cx="6" cy="8" r="1.3"/><circle cx="10" cy="8" r="1.3"/><circle cx="6" cy="12" r="1.3"/><circle cx="10" cy="12" r="1.3"/></svg>',
+};
+
+let items = [];
+let ready = false;
+let editing = null;   // id der Aufgabe, die gerade bearbeitet wird
+let adding = null;    // id der Aufgabe, an die ein Unterpunkt kommt
+let dragId = null;
+const exp = store.get("tagesplaner.todo.offen", {});
+const isOpen = (n, depth) => n.id in exp ? exp[n.id] : depth > 0;
+const busyLocally = () => editing || adding || dragId;
+const T = syncDoc("notizen/haupt", { empty: { items: [], v: 1 }, busy: busyLocally, changed: () => { items = normalize(T.data.items || []); T.data.items = items; if (!ready) enable(); else render(); } });
+
+function countDone(n) { return n.children.filter(c => c.done).length; }
+
+function nodeHTML(n, depth) {
+  const kids = n.children.length > 0;
+  const open = isOpen(n, depth);
+  const cls = ["node", n.done && "done", kids && "has-kids", (kids || adding === n.id) && !open && "closed", dragId === n.id && "dragging"].filter(Boolean).join(" ");
+  let row;
+  if (editing === n.id) {
+    row = `<form class="edit" data-edit="${n.id}">
+      ${depth === 0 ? `<input class="e-tag" value="${esc(n.tag || "")}" placeholder="Stichwort" aria-label="Stichwort" maxlength="24">` : ""}
+      <input class="e-text" value="${esc(n.text)}" aria-label="Text"></form>`;
+  } else {
+    row = `<div class="body">
+        ${depth === 0 && n.tag ? `<span class="tag" style="--h:${hue(n.tag)}" title="${n.tagAuto ? "Stichwort automatisch gewählt" : "Stichwort"}">${esc(n.tag)}</span>` : ""}
+        <span class="text">${esc(n.text)}</span>
+      </div>
+      ${kids ? `<button class="fold" data-act="fold" aria-expanded="${open}" aria-label="${n.children.length} Unterpunkte, ${countDone(n)} erledigt">${countDone(n)}/${n.children.length}${ICON.chev}</button>` : ""}
+      <span class="tools">
+        <button class="tool" data-act="add" title="Unterpunkt anlegen" aria-label="Unterpunkt anlegen">${ICON.plus}</button>
+        <button class="tool" data-act="edit" title="Bearbeiten" aria-label="Bearbeiten">${ICON.edit}</button>
+        <button class="tool del" data-act="del" title="Löschen" aria-label="Löschen">${ICON.del}</button>
+        <span class="tool grip" draggable="true" title="Ziehen zum Verschieben" aria-hidden="true">${ICON.grip}</span>
+      </span>`;
+  }
+  const adder = adding === n.id ? `<li class="adder"><div class="row"><span class="stub"></span><input id="td-adder-input" placeholder="Unterpunkt, Enter für den nächsten" aria-label="Neuer Unterpunkt"></div></li>` : "";
+  const sub = kids || adder ? `<ul class="kids"><span class="thread" data-thread="${n.id}" title="Zweig zuklappen"></span>${n.children.map(c => nodeHTML(c, depth + 1)).join("")}${adder}</ul>` : "";
+  return `<li class="${cls}" data-id="${n.id}"><div class="row" data-row="${n.id}">
+      <button class="check" data-act="check" role="checkbox" aria-checked="${n.done}" aria-label="Erledigt">${ICON.check}</button>
+      ${row}</div>${sub}</li>`;
+}
+
+let rendering = false;   // beim Neuzeichnen meldet der Browser "Fokus verlassen" für das alte Feld, das ist kein Rausklicken
+function render() {
+  const tree = $("#td-tree");
+  rendering = true;
+  if (!items.length && ready) {
+    tree.innerHTML = `<li class="empty"><strong>Noch nichts notiert.</strong>Für grobe Sachen und Gedanken, die noch keinen Platz im Tag haben. Unterpunkte hängst du mit + an.</li>`;
+  } else {
+    tree.innerHTML = items.map(n => nodeHTML(n, 0)).join("");
+  }
+  rendering = false;
+  $("#td-tail").hidden = !items.length;
+  $("#td-hint").hidden = !items.length;
+  const open = items.filter(n => !n.done).length;
+  $("#td-count").textContent = items.length ? `${open} offen · ${items.length - open} erledigt` : "";
+  $("#todo-open").hidden = !open; $("#todo-open").textContent = open;
+  if (editing) { const i = tree.querySelector(`[data-edit="${editing}"] .e-text`); i && (i.focus(), i.setSelectionRange(i.value.length, i.value.length)); }
+  if (adding) $("#td-adder-input")?.focus();
+}
+
+function commit() {
+  normalize(items);
+  render();
+  T.save();
+}
+function settle() { T.settle(); }
+
+function enable() {
+  ready = true;
+  for (const id of ["#td-new-text", "#td-new-tag", "#td-new-btn"]) $(id).disabled = false;
+  render();
+}
+if (T.ready) { items = normalize(T.data.items || []); T.data.items = items; enable(); }   // ohne Datenbank: Stand aus dem Browser
+
+/* Stichwort von Claude: nur wenn keins eingetragen wurde; die Schätzung steht sofort da */
+let sample = null, sampleOff = false;
+window.claude?.use?.("sample").then(s => { sample = s; }).catch(() => {});
+async function suggestTag(id) {
+  if (!sample || sampleOff) return;
+  const n = locate(items, id)?.node;
+  if (!n) return;
+  const text = n.text;
+  try {
+    const r = await sample.json(
+      'Wähle ein kurzes deutsches Stichwort (ein Wort, höchstens zwei), das das Thema dieser Aufgabe benennt. Antworte nur mit JSON wie {"stichwort": "Steuer"}.\n\nAufgabe: ' + text,
+      { modelTier: "quick" });
+    const t = String(r?.stichwort || "").replace(/[^\p{L}\p{N} -]/gu, "").trim().slice(0, 24);
+    const now = locate(items, id)?.node;
+    if (t && now && now.tagAuto && now.text === text && now.tag !== t) { now.tag = t; commit(); }
+  } catch (e) {
+    if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(e?.code)) sampleOff = true;
+  }
+}
+
+/* Eingaben */
+$("#td-new").addEventListener("submit", e => {
+  e.preventDefault();
+  const text = $("#td-new-text").value.trim();
+  if (!text || !ready) return;
+  const typed = $("#td-new-tag").value.trim();
+  const n = { id: uid(), text, tag: typed || guessTag(text), tagAuto: !typed, done: false, children: [] };
+  items.unshift(n);
+  $("#td-new-text").value = ""; $("#td-new-tag").value = "";
+  commit();
+  $("#td-new-text").focus();
+  if (!typed) suggestTag(n.id);
+});
+
+function toggleOpen(id) {
+  const li = $("#td-tree").querySelector(`li[data-id="${id}"]`);
+  if (!li || !li.classList.contains("has-kids")) return;
+  const open = li.classList.contains("closed");
+  li.classList.toggle("closed", !open);
+  li.querySelector(":scope > .row .fold")?.setAttribute("aria-expanded", open);
+  exp[id] = open; store.set("tagesplaner.todo.offen", exp);
+  const kids = li.querySelector(":scope > .kids");
+  if (open && kids) { kids.classList.remove("unfold"); void kids.offsetWidth; kids.classList.add("unfold"); }
+}
+
+$("#td-tree").addEventListener("click", e => {
+  const thread = e.target.closest("[data-thread]");
+  if (thread) { toggleOpen(thread.dataset.thread); return; }
+  const rowEl = e.target.closest("[data-row]");
+  if (!rowEl || e.target.closest(".edit, .adder")) return;
+  const id = rowEl.dataset.row;
+  const hit = locate(items, id);
+  if (!hit) return;
+  const act = e.target.closest("[data-act]")?.dataset.act;
+  if (act === "check") { setDone(hit.node, !hit.node.done); commit(); return; }
+  if (act === "add") { adding = id; editing = null; exp[id] = true; store.set("tagesplaner.todo.offen", exp); render(); return; }
+  if (act === "edit") { editing = id; adding = null; render(); return; }
+  if (act === "del") {
+    const { node, list, index, parent } = hit;
+    list.splice(index, 1);
+    commit();
+    toast(`„${node.text}“ gelöscht`, () => {
+      const home = parent ? locate(items, parent.id)?.node.children : items;
+      (home || items).splice(Math.min(index, (home || items).length), 0, node);
+      commit();
+    });
+    return;
+  }
+  if (act === "fold" || !e.target.closest("button, .grip")) toggleOpen(id);
+});
+
+$("#td-tree").addEventListener("dblclick", e => {
+  const txt = e.target.closest(".text, .tag");
+  if (!txt) return;
+  editing = txt.closest("[data-row]").dataset.row; adding = null; render();
+});
+
+function finishEdit(save) {
+  const form = $("#td-tree").querySelector("[data-edit]");
+  if (!form || !editing) return;
+  const n = locate(items, editing)?.node;
+  const id = editing;
+  editing = null;
+  if (save && n) {
+    const text = form.querySelector(".e-text").value.trim() || n.text;
+    const tagIn = form.querySelector(".e-tag");
+    const changedText = text !== n.text;
+    n.text = text;
+    if (tagIn) {
+      const typed = tagIn.value.trim();
+      if (typed && typed !== n.tag) { n.tag = typed; n.tagAuto = false; }
+      else if (!typed) { n.tag = guessTag(text); n.tagAuto = true; }
+      else if (changedText && n.tagAuto) n.tag = guessTag(text);
+    }
+    commit();
+    if (tagIn && n.tagAuto && (changedText || !tagIn.value.trim())) suggestTag(id);
+  } else render();
+  settle();
+}
+$("#td-tree").addEventListener("keydown", e => {
+  if (e.target.closest("[data-edit]")) {
+    if (e.key === "Enter") { e.preventDefault(); finishEdit(true); }
+    if (e.key === "Escape") finishEdit(false);
+  }
+  if (e.target.id === "td-adder-input") {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const text = e.target.value.trim();
+      const parent = locate(items, adding)?.node;
+      if (text && parent) { parent.children.push({ id: uid(), text, done: false, children: [] }); commit(); }
+    }
+    if (e.key === "Escape") { adding = null; render(); settle(); }
+  }
+});
+$("#td-tree").addEventListener("focusout", e => {
+  if (rendering || !e.target.isConnected) return;   // Feld wurde gerade neu gezeichnet
+  if (e.target.closest("[data-edit]")) {
+    setTimeout(() => { if (!document.activeElement?.closest("[data-edit]")) finishEdit(true); });
+  }
+  if (e.target.id === "td-adder-input") {
+    const text = e.target.value.trim();
+    const parent = locate(items, adding)?.node;
+    adding = null;
+    if (text && parent) { parent.children.push({ id: uid(), text, done: false, children: [] }); commit(); }
+    else setTimeout(render);
+    settle();
+  }
+});
+
+/* Ziehen und Ablegen am Griff (nur innerhalb des To-do-Fachs) */
+const box = $("#td");
+let dropAt = null, openTimer = null;
+function clearDrop() { box.querySelectorAll(".drop-before, .drop-after, .drop-inside").forEach(el => el.classList.remove("drop-before", "drop-after", "drop-inside")); }
+$("#td-tree").addEventListener("dragstart", e => {
+  const grip = e.target.closest?.(".grip");
+  if (!grip) { e.preventDefault(); return; }
+  const row = grip.closest("[data-row]");
+  dragId = row.dataset.row;
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", dragId);
+  e.dataTransfer.setDragImage(row, 20, 20);
+  requestAnimationFrame(() => row.parentElement.classList.add("dragging"));
+});
+box.addEventListener("dragover", e => {
+  if (!dragId) return;
+  clearDrop();
+  dropAt = null;
+  if (e.target.closest("#td-tail")) {
+    e.preventDefault(); $("#td-tail").classList.add("drop-after"); dropAt = { id: null, pos: "after" }; return;
+  }
+  const row = e.target.closest("[data-row]");
+  if (!row) return;
+  const id = row.dataset.row;
+  const src = locate(items, dragId)?.node;
+  if (!src || contains(src, id)) return;
+  const r = row.getBoundingClientRect();
+  const y = (e.clientY - r.top) / r.height;
+  let pos = y < .28 ? "before" : y > .72 ? "after" : "inside";
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  row.classList.add("drop-" + pos);
+  // unter einer aufgeklappten Aufgabe heißt "danach": als ersten Unterpunkt einhängen
+  const li = row.parentElement;
+  if (pos === "after" && li.classList.contains("has-kids") && !li.classList.contains("closed")) pos = "first";
+  dropAt = { id, pos };
+  if (pos === "inside" && row.parentElement.classList.contains("closed")) {
+    if (openTimer?.id !== id) { clearTimeout(openTimer?.t); openTimer = { id, t: setTimeout(() => toggleOpen(id), 600) }; }
+  } else { clearTimeout(openTimer?.t); openTimer = null; }
+});
+box.addEventListener("drop", e => {
+  if (!dragId || !dropAt) return;
+  e.preventDefault();
+  const { id, pos } = dropAt;
+  const moved = dragId;
+  dragId = null;
+  if (move(items, moved, id, pos)) {
+    if (pos === "inside" || pos === "first") { exp[id] = true; store.set("tagesplaner.todo.offen", exp); }
+    commit();
+  } else render();
+});
+box.addEventListener("dragend", () => {
+  clearDrop(); clearTimeout(openTimer?.t); openTimer = null; dropAt = null;
+  if (dragId) { dragId = null; render(); }
+  settle();
+});
+}
+
+// Zurück-Taste der Android-App: erst offene Fenster schließen, dann die App
+window.appBack = () => {
+  if (!$("#set-pop").hidden) { setPop(false); return true; }
+  if (side) { closeSide(); return true; }
+  if ($("#td").classList.contains("open")) { closeTodo(); return true; }
+  return false;
+};
+
+/* Start */
+async function boot() {
+  db = await window.claude?.use?.("db").catch(() => null);
+  // als installierte Web-App (Startbildschirm) oder Android-App: Daten bleiben auf dem Gerät
+  const installed = native || matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (!db) installed ? status("Auf diesem Gerät gespeichert") : status("Nur in diesem Browser gespeichert", "warn");
+  if (!db && !native) navigator.storage?.persist?.().catch(() => {});   // Browser bitten, die Daten nie von selbst zu löschen
+  cats = syncDoc("planer/kategorien", { empty: { list: [] }, busy: planBusy, changed: () => { renderDay(); if (side) renderSide(); } });
+  openDay(todayKey());
+  initTodo();
+  if (store.get("tagesplaner.todoOffen", false)) openTodo();
+}
+boot();
+</script>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});</script></body>
+</html>
