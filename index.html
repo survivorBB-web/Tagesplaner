@@ -1346,5 +1346,57 @@ async function boot() {
 }
 boot();
 </script>
+<!-- Nur in der Web-App (build-web.ps1 fügt das vor </body> ein): Knopf "App installieren" mit Anleitung und APK-Link. In der installierten App unsichtbar. -->
+<style>
+.inst { position: relative; }
+.inst-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.inst-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
+.inst-btn svg { width: 14px; height: 14px; }
+.inst .pop { top: 26px; left: 0; width: min(300px, calc(100vw - 40px)); min-width: 0; gap: 10px; font-size: 14px; color: var(--ink); }
+.inst .pop p { margin: 0; line-height: 1.45; }
+.inst .pop .note { font-size: 13px; color: var(--muted); }
+.inst .pop hr { border: 0; border-top: 1px solid var(--hair); margin: 2px 0; width: 100%; }
+</style>
+<script>
+(() => {
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  const sub = document.querySelector(".sub");
+  if (standalone || !sub) return;
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const android = /Android/.test(ua);
+  let prompt = null;
+
+  const wrap = document.createElement("span");
+  wrap.className = "inst";
+  wrap.innerHTML = `<button class="inst-btn" aria-expanded="false" aria-controls="inst-pop"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v7.5M4.8 7 8 10.2 11.2 7M3 13.2h10"/></svg>App installieren</button><div class="pop" id="inst-pop" hidden></div>`;
+  sub.append(wrap);
+  const btn = wrap.firstElementChild, pop = wrap.lastElementChild;
+
+  const render = () => {
+    let how;
+    if (prompt) how = `<button class="btn" data-install>Jetzt installieren</button>`;
+    else if (ios && /CriOS|FxiOS|EdgiOS/.test(ua)) how = `<p>Öffne diesen Link in <b>Safari</b>. Dort unten auf <b>Teilen</b> tippen, dann <b>„Zum Home-Bildschirm“</b>.</p>`;
+    else if (ios) how = `<p>Unten auf <b>Teilen</b> tippen (Quadrat mit Pfeil), dann <b>„Zum Home-Bildschirm“</b> und <b>„Hinzufügen“</b>.</p>`;
+    else if (android) how = `<p>Im Chrome-Menü <b>⋮</b> auf <b>„App installieren“</b> oder <b>„Zum Startbildschirm hinzufügen“</b> tippen.</p>`;
+    else how = `<p>Öffne diesen Link auf dem Handy, auf dem iPhone in Safari, auf Android in Chrome. Dort zeigt dir dieser Knopf, wie es weitergeht.</p>`;
+    pop.innerHTML = `<span class="ov-label">App installieren</span>${how}<p class="note">Danach startest du den Planer über das Icon. Deine Einträge bleiben auf diesem Gerät.</p>`
+      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="Tagesplaner.apk" download>Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
+  };
+  const open = show => { pop.hidden = !show; btn.setAttribute("aria-expanded", show); if (show) render(); };
+
+  btn.addEventListener("click", () => open(pop.hidden));
+  pop.addEventListener("click", async e => {
+    if (!e.target.closest("[data-install]") || !prompt) return;
+    prompt.prompt();
+    await prompt.userChoice.catch(() => {});
+    prompt = null; render();
+  });
+  document.addEventListener("click", e => { if (!wrap.contains(e.target)) open(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") open(false); });
+  addEventListener("beforeinstallprompt", e => { e.preventDefault(); prompt = e; if (!pop.hidden) render(); });
+  addEventListener("appinstalled", () => wrap.remove());
+})();
+</script>
 <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});</script></body>
 </html>
