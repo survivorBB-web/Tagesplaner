@@ -175,6 +175,7 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
 .grid .ev.short .ev-check { margin-top: 0; }
 .grid .ev.short .ev-main { display: flex; gap: 8px; align-items: baseline; }
 .grid .ev.short .ev-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.grid .ev.short .ev-title svg { display: inline-block; vertical-align: -1px; margin-right: 5px; }   /* Uhr vorne in der Zeile, nicht darüber */
 .grid .ev.lifted { z-index: 3; box-shadow: 0 6px 18px rgb(0 0 0 / .14); cursor: grabbing; opacity: .95; }
 .resize { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; cursor: ns-resize; }
 .now { position: absolute; left: calc(var(--gut) - 6px); right: 0; height: 2px; background: var(--late); pointer-events: none; z-index: 2; }
@@ -513,7 +514,7 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
       </form>
       <ul class="tree" id="af-tree"></ul>
       <div class="tail" id="af-tail" hidden></div>
-      <p class="hint" id="af-hint" hidden>Das sind die Einträge des gewählten Tages, ihre Unterpunkte sind die Schritte. Mit dem Pfeil öffnest du einen Eintrag mit allen Einstellungen.</p>
+      <p class="hint" id="af-hint" hidden>Das sind die Aufgaben des gewählten Tages, ihre Unterpunkte sind die Schritte. Termine stehen nur im Tag. Mit dem Pfeil öffnest du einen Eintrag mit allen Einstellungen.</p>
     </div>
   </div>
 </aside>
@@ -1272,21 +1273,24 @@ const T = linked ? null : syncDoc("notizen/haupt", { empty: { items: [], v: 1 },
 /* Kopplung an die Einträge: Einträge sind die oberste Ebene, ihre Schritte die Unterpunkte.
    Zurückgeschrieben wird nur Text, Haken, Schritte und Reihenfolge; alles andere am Eintrag bleibt unberührt. */
 const grave = new Map();   // im Fach gelöschte Einträge, damit "Rückgängig" sie vollständig zurückholt
+// Nur Aufgaben stehen im Fach; Termine bleiben unberührt im Tag
+const isTask = e => e.kind !== "termin";
 function fromDay() {
-  return normalize(entries().map(e => ({ id: e.id, text: e.title, done: !!e.done, cat: e.cat, start: e.start, dur: e.dur,
+  return normalize(entries().filter(isTask).map(e => ({ id: e.id, text: e.title, done: !!e.done, cat: e.cat, start: e.start, dur: e.dur,
     children: (e.steps || []).map(s => ({ id: s.id, text: s.text, done: !!s.done, children: [] })) })));
 }
 function toDay() {
   const old = new Map(entries().map(e => [e.id, e]));
   const keep = new Set(items.map(n => n.id));
-  for (const e of entries()) if (!keep.has(e.id)) grave.set(e.id, e);
-  day.data.entries = items.map(n => {
+  for (const e of entries()) if (isTask(e) && !keep.has(e.id)) grave.set(e.id, e);
+  const tasks = items.map(n => {
     const e = old.get(n.id) || grave.get(n.id) || newEntry({ id: n.id, cat: n.cat || null });
     e.title = n.text;
     e.steps = n.children.map(c => ({ id: c.id, text: c.text, done: !!c.done }));
     e.done = n.done;
     return e;
   });
+  day.data.entries = [...tasks, ...entries().filter(e => !isTask(e))];   // Termine nie verlieren
 }
 function refresh() {
   if (!linked || busyLocally()) return;
@@ -1579,7 +1583,7 @@ const TOUR = [
   ["#week", "Woche", "Tippe auf einen Tag, um ihn anzusehen."],
   [".nav", "Tage und Kategorien", "Mit den Pfeilen gehst du einen Tag vor oder zurück. „Heute“ bringt dich zu heute. Bei „Kategorien“ gibst du deinen Einträgen Farben."],
   ["#todo-tab", "To-do", "Eine Liste für alles, was noch keinen festen Tag hat."],
-  ["#af-tab", "Aufgaben", "Alle Einträge des Tages als Liste. Hier siehst du auch ihre Schritte. Was du hier einträgst, steht auch im Tag."],
+  ["#af-tab", "Aufgaben", "Alle Aufgaben des Tages als Liste. Hier siehst du auch ihre Schritte. Was du hier einträgst, steht auch im Tag."],
   ["#set-btn", "Einstellungen", "Hier wechselst du zwischen Hell und Dunkel. Hier startest du auch diese Anleitung neu."],
 ];
 let tour = null;
