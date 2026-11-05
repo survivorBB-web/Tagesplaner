@@ -386,7 +386,19 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
 .nt-before { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
 .nt-bell { display: inline-flex; align-items: center; gap: 3px; }
 .nt-bell svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 1.6; fill: none; }
-#notif-set:not([hidden]) { display: grid; gap: 8px; }
+#notif-set:not([hidden]), #upd-set:not([hidden]) { display: grid; gap: 8px; }
+/* Update: weiße 1 im roten Kreis am Zahnrad und am Knopf, Fenster in der Mitte */
+#set-btn, .upd-btn { position: relative; }
+.badge { position: absolute; right: -6px; bottom: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #E5484D; color: #fff; font: 700 11px/18px var(--font); text-align: center; box-shadow: 0 0 0 2px var(--bg); }
+.badge[hidden] { display: none; }
+.upd-btn .badge { right: 10px; bottom: auto; top: 50%; transform: translateY(-50%); box-shadow: none; }
+.dlg { border: 1px solid var(--hair); border-radius: 14px; background: var(--surface); color: var(--ink); padding: 20px 20px 14px; width: min(340px, calc(100vw - 32px)); box-shadow: 0 12px 40px rgb(0 0 0 / .25); }
+.dlg::backdrop { background: rgb(10 12 16 / .5); }
+.dlg h3 { margin: 0 0 6px; font: 650 20px/1.25 var(--display); letter-spacing: -0.01em; }
+.dlg p { margin: 0 0 10px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.dlg ul { margin: 0 0 12px; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; line-height: 1.45; }
+.dlg ul:empty { display: none; }
+.dlg-foot { display: flex; justify-content: flex-end; align-items: center; gap: 16px; margin-top: 4px; }
 #notif-opts:not([hidden]) { display: grid; gap: 8px; padding: 2px 2px 0; }
 #notif-opts .switch:has(input:disabled) { opacity: .5; }
 /* Uhr bei Terminen: großer Zeiger springt jede Sekunde eine Viertelumdrehung weiter */
@@ -432,7 +444,7 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
     <div class="title-row">
       <div class="head-left">
         <div class="settings">
-          <button class="icon-btn" id="set-btn" aria-label="Einstellungen" aria-expanded="false" aria-controls="set-pop"><svg class="ico" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.65" stroke-width="3.1" stroke-dasharray=".5 5.42" stroke-linecap="round"/><path fill="currentColor" fill-rule="evenodd" stroke="none" d="M8 3.1a4.9 4.9 0 1 0 0 9.8a4.9 4.9 0 1 0 0-9.8ZM8 6.4a1.6 1.6 0 1 1 0 3.2a1.6 1.6 0 1 1 0-3.2Z"/></svg></button>
+          <button class="icon-btn" id="set-btn" aria-label="Einstellungen" aria-expanded="false" aria-controls="set-pop"><svg class="ico" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.65" stroke-width="3.1" stroke-dasharray=".5 5.42" stroke-linecap="round"/><path fill="currentColor" fill-rule="evenodd" stroke="none" d="M8 3.1a4.9 4.9 0 1 0 0 9.8a4.9 4.9 0 1 0 0-9.8ZM8 6.4a1.6 1.6 0 1 1 0 3.2a1.6 1.6 0 1 1 0-3.2Z"/></svg><b class="badge" data-upd hidden aria-label="Update verfügbar">1</b></button>
           <div class="pop" id="set-pop" hidden>
             <span class="ov-label">Darstellung</span>
             <div class="seg" role="group" aria-label="Darstellung"><button data-theme-set="light">Hell</button><button data-theme-set="dark">Dunkel</button><button data-theme-set="">Wie System</button></div>
@@ -443,6 +455,10 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
                 <label class="switch"><input type="checkbox" id="nt-daily"> Tägliche Benachrichtigung</label>
                 <label class="switch"><input type="checkbox" id="nt-motiv"> Motivation</label>
               </div>
+            </div>
+            <div id="upd-set" hidden>
+              <span class="ov-label">App</span>
+              <button class="soft-btn upd-btn" data-upd-check>Nach Updates suchen<b class="badge" data-upd hidden>1</b></button>
             </div>
             <span class="ov-label">Hilfe</span>
             <button class="soft-btn" data-tour-start>Tutorial starten</button>
@@ -499,6 +515,12 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
     </div>
   </div>
 </aside>
+<dialog class="dlg" id="upd-dlg" aria-labelledby="upd-h">
+  <h3 id="upd-h"></h3>
+  <p id="upd-p"></p>
+  <ul id="upd-notes"></ul>
+  <div class="dlg-foot"><button class="link-btn" data-upd-close>Schließen</button><button class="btn" data-upd-go hidden>Jetzt installieren</button></div>
+</dialog>
 <aside class="drawer td" id="af" aria-label="Aufgaben">
   <div class="panel-head">
     <h2>Aufgaben</h2>
@@ -1170,6 +1192,66 @@ $("#set-pop").addEventListener("click", e => {
   applyTheme();
 });
 document.addEventListener("click", e => { if (!e.target.closest(".settings")) setPop(false); });
+/* Updates (nur Android-App): beim Start im Hintergrund nachsehen; gibt es eins, steht eine rote 1 am Zahnrad und am Knopf */
+const app = window.AndroidApp;
+let upd = null, updAsked = false;
+function updDialog(title, text, notes = [], canInstall = false) {
+  $("#upd-h").textContent = title;
+  $("#upd-p").textContent = text;
+  $("#upd-notes").innerHTML = notes.map(n => `<li>${esc(n)}</li>`).join("");
+  const go = $("[data-upd-go]");
+  go.hidden = !canInstall; go.disabled = false; go.textContent = "Jetzt installieren";
+  const d = $("#upd-dlg");
+  if (!d.open) d.showModal();
+}
+function showUpdate(offline) {
+  if (offline) updDialog("Keine Verbindung", "Ob es ein Update gibt, lässt sich gerade nicht prüfen. Hast du Internet?");
+  else if (upd) updDialog("Update verfügbar", `Version ${upd.name} ist da, du hast ${app.versionName()}.`, upd.notes || [], true);
+  else updDialog("Alles aktuell", `Die App ist auf dem neuesten Stand (Version ${app.versionName()}).`);
+}
+if (app) {
+  $("#upd-set").hidden = false;
+  window.appUpdateInfo = body => {
+    let v = null;
+    try { v = JSON.parse(body); } catch { }
+    upd = v && +v.code > app.versionCode() ? v : null;
+    document.querySelectorAll("[data-upd]").forEach(b => { b.hidden = !upd; });
+    const btn = $("[data-upd-check]"); btn.firstChild.textContent = "Nach Updates suchen";
+    if (updAsked) { updAsked = false; showUpdate(!v); }
+    else if (upd && store.get("tagesplaner.updGezeigt", 0) !== +upd.code) { store.set("tagesplaner.updGezeigt", +upd.code); showUpdate(); }   // pro neuer Version einmal von selbst
+  };
+  window.appUpdateStatus = s => {
+    const p = $("#upd-p"), go = $("[data-upd-go]");
+    go.disabled = false;
+    if (s === "installer") { p.textContent = "Bestätige jetzt die Installation. Deine Einträge bleiben erhalten."; go.hidden = true; }
+    else if (s === "alt") p.textContent = "Das Update ist gleich bereit. Versuch es in ein paar Minuten noch einmal.";
+    else p.textContent = "Der Download hat nicht geklappt. Versuch es später noch einmal.";
+  };
+  $("#upd-dlg").addEventListener("click", e => {
+    if (e.target.closest("[data-upd-close]")) { $("#upd-dlg").close(); return; }
+    if (!e.target.closest("[data-upd-go]")) return;
+    const go = $("[data-upd-go]");
+    const r = app.installUpdate();
+    if (r === "erlauben") $("#upd-p").textContent = "Erlaube dem Tagesplaner in den Einstellungen, Apps zu installieren. Komm dann zurück und tippe noch einmal auf „Jetzt installieren“.";
+    else { $("#upd-p").textContent = "Update wird geladen …"; go.disabled = true; go.textContent = "Lädt …"; }
+  });
+  $("#set-pop").addEventListener("click", e => {
+    if (!e.target.closest("[data-upd-check]")) return;
+    setPop(false); updAsked = true;
+    $("[data-upd-check]").firstChild.textContent = "Sucht …";
+    app.checkUpdate();
+  });
+  // Nach einem Update einmal „Update erfolgreich!“ mit den Patchnotes dieser Version
+  const curCode = app.versionCode(), lastCode = store.get("tagesplaner.appVersion", 0);
+  if (lastCode ? lastCode < curCode : app.wasUpdated()) {
+    let notes = [];
+    try { notes = (JSON.parse(app.patchNotes()).find(x => +x.code === curCode) || {}).notes || []; } catch { }
+    updDialog("Update erfolgreich!", `Du hast jetzt Version ${app.versionName()}.`, notes);
+  }
+  store.set("tagesplaner.appVersion", curCode);
+  app.checkUpdate();
+}
+
 /* Benachrichtigungen: nur die Android-App kann sie schicken. Die App liest diese Einstellung selbst. */
 if (native) {
   const NT_KEY = "tagesplaner.benachrichtigung";
@@ -1645,6 +1727,7 @@ document.addEventListener("keydown", e => {
 
 // Zurück-Taste der Android-App: erst offene Fenster schließen, dann die App
 window.appBack = () => {
+  if ($("#upd-dlg").open) { $("#upd-dlg").close(); return true; }
   if (tour) { tourEnd(); return true; }
   if (!$("#set-pop").hidden) { setPop(false); return true; }
   if (side) { closeSide(); return true; }
