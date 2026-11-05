@@ -1678,14 +1678,27 @@ boot();
 .inst .pop p { margin: 0; line-height: 1.45; }
 .inst .pop .note { font-size: 13px; color: var(--muted); }
 .inst .pop hr { border: 0; border-top: 1px solid var(--hair); margin: 2px 0; width: 100%; }
+.nt-hint { display: grid; gap: 4px; }
+.nt-hint p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); max-width: 240px; }
 </style>
 <script>
 (() => {
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  // Im Zahnrad: Benachrichtigungen gibt es nur in der Android-App, hier ein Hinweis statt der Einstellung
+  const setPop = document.getElementById("set-pop");
+  if (setPop && !window.AndroidStore) {
+    const hint = document.createElement("div");
+    hint.className = "nt-hint";
+    hint.innerHTML = `<span class="ov-label">Benachrichtigungen</span>`
+      + (ios ? `<p>Gibt es nur in der Android-App. Auf dem iPhone geht das leider nicht.</p>`
+             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner.apk">Android-App herunterladen</a>`);
+    setPop.insertBefore(hint, setPop.querySelector("[data-tour-start]")?.previousElementSibling || null);
+  }
+
   const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
   const sub = document.querySelector(".sub");
   if (standalone || !sub) return;
-  const ua = navigator.userAgent;
-  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const android = /Android/.test(ua);
   let prompt = null;
 
