@@ -365,6 +365,22 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Tutorial: abgedunkelter Hintergrund, Ring um die erklärte Stelle, Sprechblase mit Pfeil */
+.tour { position: fixed; inset: 0; z-index: 100; }
+.tour-dim { position: fixed; inset: 0; background: rgb(10 12 16 / .55); pointer-events: none; }
+.tour-ring { position: fixed; border-radius: 12px; outline: 2px solid var(--accent); pointer-events: none; transition: left .3s cubic-bezier(.16,1,.3,1), top .3s cubic-bezier(.16,1,.3,1), width .3s cubic-bezier(.16,1,.3,1), height .3s cubic-bezier(.16,1,.3,1); }
+.tour-tip { position: fixed; width: min(320px, calc(100vw - 16px)); display: grid; gap: 6px; padding: 16px 16px 12px; background: var(--surface); color: var(--ink); border: 1px solid var(--hair); border-radius: 12px; box-shadow: 0 10px 32px rgb(0 0 0 / .22); transition: left .3s cubic-bezier(.16,1,.3,1), top .3s cubic-bezier(.16,1,.3,1); }
+.tour-tip::before { content: ""; position: absolute; left: calc(var(--ax) - 7px); width: 12px; height: 12px; background: var(--surface); border: 1px solid var(--hair); transform: rotate(45deg); display: none; }
+.tour-tip[data-dir="up"]::before { display: block; top: -7px; border-right: 0; border-bottom: 0; }
+.tour-tip[data-dir="down"]::before { display: block; bottom: -7px; border-left: 0; border-top: 0; }
+.tour-tip h3 { margin: 0; padding-right: 28px; font: 650 17px/1.25 var(--display); letter-spacing: -0.01em; }
+.tour-tip p { margin: 0; font-size: 14px; line-height: 1.5; }
+.tour-x { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 6px; display: grid; place-items: center; color: var(--muted); }
+.tour-x:hover { background: var(--hover); color: var(--ink); }
+.tour-foot { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
+.tour-n { margin-right: auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tour-foot .btn { padding: 8px 16px; }
 </style>
 </head>
 <body>
@@ -377,6 +393,8 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
           <div class="pop" id="set-pop" hidden>
             <span class="ov-label">Darstellung</span>
             <div class="seg" role="group" aria-label="Darstellung"><button data-theme-set="light">Hell</button><button data-theme-set="dark">Dunkel</button><button data-theme-set="">Wie System</button></div>
+            <span class="ov-label">Hilfe</span>
+            <button class="soft-btn" data-tour-start>Tutorial starten</button>
           </div>
         </div>
         <div>
@@ -985,6 +1003,7 @@ applyTheme();
 const setPop = (open) => { $("#set-pop").hidden = !open; $("#set-btn").setAttribute("aria-expanded", open); };
 $("#set-btn").onclick = e => { e.stopPropagation(); setPop($("#set-pop").hidden); };
 $("#set-pop").addEventListener("click", e => {
+  if (e.target.closest("[data-tour-start]")) { tourShow(0); return; }
   const b = e.target.closest("[data-theme-set]");
   if (!b) return;
   themeChoice = b.dataset.themeSet;
@@ -1324,8 +1343,78 @@ box.addEventListener("dragend", () => {
 });
 }
 
+/* Tutorial: Sprechblasen zeigen nacheinander auf die wichtigsten Stellen.
+   Ziel: CSS-Selektor, mit "|" getrennte Ausweichziele (der erste vorhandene zählt). */
+const TOUR = [
+  ["#quick", "Neuer Eintrag", "Schreib hier, was ansteht. Mit Uhrzeit vorne, etwa „14:30 Zahnarzt“, wird es ein Termin in der Zeitleiste. Ohne Uhrzeit landet es unter „Ohne Uhrzeit“."],
+  ["#untimed [data-ev], #grid [data-ev]|.untimed", "Abhaken und öffnen", "Mit dem Kästchen hakst du einen Eintrag ab. Tippst du auf den Eintrag, öffnet er sich: Dort wählst du Kategorie, Uhrzeit und Dauer, teilst ihn in kleine Schritte und misst mit dem Timer, wie lange du wirklich brauchst."],
+  ["#timeline", "Zeitleiste", "Dein Tag Stunde für Stunde. Tipp auf eine freie Stelle, um dort einen Termin anzulegen. Am PC verschiebst du Termine durch Ziehen und änderst am unteren Rand die Dauer."],
+  ["#overview", "Überblick", "Was als Nächstes dran ist, wie viel du geschafft hast und deine Zeitbilanz: ob du schneller oder langsamer warst als geplant."],
+  ["#week", "Woche", "Tipp auf einen Tag, um ihn zu planen."],
+  [".nav", "Tage und Kategorien", "Mit den Pfeilen wechselst du den Tag, „Heute“ bringt dich zurück. Unter „Kategorien“ legst du Namen und Farben an. Einträge übernehmen die Farbe ihrer Kategorie."],
+  ["#todo-tab", "To-do", "Deine Liste für grobe Sachen und Gedanken, die noch keinen Platz im Tag haben. Sie ist nicht mit dem Kalender verknüpft."],
+  ["#set-btn", "Einstellungen", "Hier wählst du Hell oder Dunkel und startest dieses Tutorial jederzeit wieder."],
+];
+let tour = null;
+const tourTarget = () => TOUR[tour.i][0].split("|").map(s => document.querySelector(s)).find(Boolean);
+function tourShow(i) {
+  if (!tour) {
+    setPop(false);
+    if (side) closeSide();
+    if ($("#td").classList.contains("open")) closeTodo();
+    const el = document.createElement("div");
+    el.className = "tour";
+    el.innerHTML = `<div class="tour-dim"></div><div class="tour-ring"></div><div class="tour-tip" role="dialog" aria-modal="true" aria-labelledby="tour-h">
+      <button class="tour-x" data-tour="end" aria-label="Tutorial beenden"><svg class="ico" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      <h3 id="tour-h"></h3><p></p>
+      <div class="tour-foot"><span class="tour-n"></span><button class="link-btn" data-tour="back">Zurück</button><button class="btn" data-tour="next"></button></div></div>`;
+    el.addEventListener("click", e => { const a = e.target.closest("[data-tour]")?.dataset.tour; if (a === "end") tourEnd(); else if (a) tourStep(a === "next" ? 1 : -1); });
+    document.body.append(el);
+    tour = { el };
+  }
+  tour.i = i;
+  const [, title, text] = TOUR[i], tip = tour.el.querySelector(".tour-tip");
+  tip.querySelector("h3").textContent = title;
+  tip.querySelector("p").textContent = text;
+  tip.querySelector(".tour-n").textContent = `${i + 1} / ${TOUR.length}`;
+  tip.querySelector("[data-tour=back]").style.visibility = i ? "" : "hidden";
+  tip.querySelector("[data-tour=next]").textContent = i === TOUR.length - 1 ? "Fertig" : "Weiter";
+  const t = tourTarget();
+  t.scrollIntoView({ block: t.offsetHeight > innerHeight * .6 ? "start" : "center" });
+  tourPlace();
+  tip.querySelector("[data-tour=next]").focus({ preventScroll: true });
+}
+function tourPlace() {
+  if (!tour) return;
+  const r = tourTarget().getBoundingClientRect(), vw = innerWidth, vh = innerHeight, pad = 6, gap = 14;
+  const top = Math.max(r.top - pad, 8), bot = Math.min(r.bottom + pad, vh - 8);
+  const L = r.left - pad, R = r.right + pad, H = Math.max(bot - top, 0), k = Math.min(12, H / 2);
+  Object.assign(tour.el.querySelector(".tour-ring").style, { left: `${L}px`, top: `${top}px`, width: `${R - L}px`, height: `${H}px` });
+  // Abdunkeln mit Loch (abgerundetes Rechteck) um die erklärte Stelle
+  tour.el.querySelector(".tour-dim").style.clipPath = `path(evenodd, "M0 0H${vw}V${vh}H0Z M${L + k} ${top}H${R - k}A${k} ${k} 0 0 1 ${R} ${top + k}V${bot - k}A${k} ${k} 0 0 1 ${R - k} ${bot}H${L + k}A${k} ${k} 0 0 1 ${L} ${bot - k}V${top + k}A${k} ${k} 0 0 1 ${L + k} ${top}Z")`;
+  const tip = tour.el.querySelector(".tour-tip"), tw = tip.offsetWidth, th = tip.offsetHeight;
+  let y, dir;
+  if (vh - bot >= th + gap + 8) { y = bot + gap; dir = "up"; }          // Blase unter der Stelle, Pfeil zeigt hoch
+  else if (top >= th + gap + 8) { y = top - gap - th; dir = "down"; }   // Blase darüber, Pfeil zeigt runter
+  else { y = Math.min(top + 16, vh - th - 8); dir = ""; }                // große Stelle wie die Zeitleiste: Blase liegt darauf
+  const cx = r.left + r.width / 2, x = clamp(cx - tw / 2, 8, vw - tw - 8);
+  Object.assign(tip.style, { left: `${x}px`, top: `${y}px` });
+  tip.dataset.dir = dir;
+  tip.style.setProperty("--ax", `${clamp(cx - x, 18, tw - 18)}px`);
+}
+function tourStep(d) { const i = tour.i + d; if (i >= TOUR.length) tourEnd(); else if (i >= 0) tourShow(i); }
+function tourEnd() { tour?.el.remove(); tour = null; $("#set-btn").focus({ preventScroll: true }); }
+addEventListener("resize", tourPlace);
+addEventListener("scroll", tourPlace, true);
+document.addEventListener("keydown", e => {
+  if (!tour || !["Escape", "ArrowRight", "ArrowLeft"].includes(e.key)) return;
+  e.preventDefault(); e.stopPropagation();
+  if (e.key === "Escape") tourEnd(); else tourStep(e.key === "ArrowRight" ? 1 : -1);
+}, true);
+
 // Zurück-Taste der Android-App: erst offene Fenster schließen, dann die App
 window.appBack = () => {
+  if (tour) { tourEnd(); return true; }
   if (!$("#set-pop").hidden) { setPop(false); return true; }
   if (side) { closeSide(); return true; }
   if ($("#td").classList.contains("open")) { closeTodo(); return true; }
