@@ -1470,7 +1470,7 @@ boot();
     else if (android) how = `<p>Im Chrome-Menü <b>⋮</b> auf <b>„App installieren“</b> oder <b>„Zum Startbildschirm hinzufügen“</b> tippen.</p>`;
     else how = `<p>Öffne diesen Link auf dem Handy, auf dem iPhone in Safari, auf Android in Chrome. Dort zeigt dir dieser Knopf, wie es weitergeht.</p>`;
     pop.innerHTML = `<span class="ov-label">App installieren</span>${how}<p class="note">Danach startest du den Planer über das Icon. Deine Einträge bleiben auf diesem Gerät.</p>`
-      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="Tagesplaner.apk" download>Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
+      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
   };
   const open = show => { pop.hidden = !show; btn.setAttribute("aria-expanded", show); if (show) render(); };
 
