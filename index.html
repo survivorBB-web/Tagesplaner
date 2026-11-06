@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tagesplaner</title>
-<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)"><script>window.WEB_VERSION="1.10"</script>
+<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)"><script>window.WEB_VERSION="1.11"</script>
 <style>
 /* Layout: eine Spalte wie die To-do-Seite. Oben Tag und Woche, darunter Überblick, Aufgaben ohne Uhrzeit und die Zeitleiste.
    Einträge liegen als leicht durchsichtige Blöcke in der Farbe ihrer Kategorie auf der Zeitleiste. Rechts klappt die To-do-Liste heraus. */
@@ -521,7 +521,7 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
   <h3 id="upd-h"></h3>
   <p id="upd-p"></p>
   <ul id="upd-notes"></ul>
-  <div class="dlg-foot"><button class="link-btn" data-upd-close>Schließen</button><button class="btn" data-upd-go hidden>Jetzt installieren</button></div>
+  <div class="dlg-foot"><button class="link-btn" data-upd-close>Schließen</button><button class="btn" data-upd-go hidden>Herunterladen</button></div>
 </dialog>
 <aside class="drawer td" id="af" aria-label="Aufgaben">
   <div class="panel-head">
@@ -1207,7 +1207,7 @@ function updDialog(title, text, notes = [], canInstall = false) {
   $("#upd-p").textContent = text;
   $("#upd-notes").innerHTML = notes.map(n => `<li>${esc(n)}</li>`).join("");
   const go = $("[data-upd-go]");
-  go.hidden = !canInstall; go.disabled = false; go.textContent = "Jetzt installieren";
+  go.hidden = !canInstall; go.textContent = "Herunterladen";
   const d = $("#upd-dlg");
   if (!d.open) d.showModal();
 }
@@ -1228,20 +1228,13 @@ if (app) {
     if (updAsked) { updAsked = false; showUpdate(!v); }
     else if (upd && store.get("tagesplaner.updGezeigt", 0) !== +upd.code) { store.set("tagesplaner.updGezeigt", +upd.code); showUpdate(); }   // pro neuer Version einmal von selbst
   };
-  window.appUpdateStatus = s => {
-    const p = $("#upd-p"), go = $("[data-upd-go]");
-    go.disabled = false;
-    if (s === "installer") { p.textContent = "Bestätige jetzt die Installation. Deine Einträge bleiben erhalten."; go.hidden = true; }
-    else if (s === "alt") p.textContent = "Das Update ist gleich bereit. Versuch es in ein paar Minuten noch einmal.";
-    else p.textContent = "Der Download hat nicht geklappt. Versuch es später noch einmal.";
-  };
+  // Herunterladen läuft über den Browser (die App selbst installiert nichts, sonst blockiert Play Protect sie)
   $("#upd-dlg").addEventListener("click", e => {
     if (e.target.closest("[data-upd-close]")) { $("#upd-dlg").close(); return; }
-    if (!e.target.closest("[data-upd-go]")) return;
-    const go = $("[data-upd-go]");
-    const r = app.installUpdate();
-    if (r === "erlauben") $("#upd-p").textContent = "Erlaube dem Tagesplaner in den Einstellungen, Apps zu installieren. Komm dann zurück und tippe noch einmal auf „Jetzt installieren“.";
-    else { $("#upd-p").textContent = "Update wird geladen …"; go.disabled = true; go.textContent = "Lädt …"; }
+    if (!e.target.closest("[data-upd-go]") || !upd) return;
+    app.openDownload?.(upd.name);
+    $("#upd-p").textContent = `Der Download startet im Browser. Danach „Tagesplaner-${upd.name}.apk“ öffnen und installieren. Deine Einträge bleiben erhalten.`;
+    $("[data-upd-go]").hidden = true;
   });
   $("#set-pop").addEventListener("click", e => {
     if (!e.target.closest("[data-upd-check]")) return;
@@ -1791,7 +1784,7 @@ boot();
     hint.className = "nt-hint";
     hint.innerHTML = `<span class="ov-label">Benachrichtigungen</span>`
       + (ios ? `<p>Gibt es nur in der Android-App. Auf dem iPhone geht das leider nicht.</p>`
-             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.10.apk">Android-App herunterladen</a>`);
+             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.11.apk">Android-App herunterladen</a>`);
     setPop.insertBefore(hint, setPop.querySelector("[data-tour-start]")?.previousElementSibling || null);
   }
 
@@ -1815,7 +1808,7 @@ boot();
     else if (android) how = `<p>Im Chrome-Menü <b>⋮</b> auf <b>„App installieren“</b> oder <b>„Zum Startbildschirm hinzufügen“</b> tippen.</p>`;
     else how = `<p>Öffne diesen Link auf dem Handy, auf dem iPhone in Safari, auf Android in Chrome. Dort zeigt dir dieser Knopf, wie es weitergeht.</p>`;
     pop.innerHTML = `<span class="ov-label">App installieren</span>${how}<p class="note">Danach startest du den Planer über das Icon. Deine Einträge bleiben auf diesem Gerät.</p>`
-      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.10.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
+      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.11.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
   };
   const open = show => { pop.hidden = !show; btn.setAttribute("aria-expanded", show); if (show) render(); };
 
