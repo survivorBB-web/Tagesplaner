@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tagesplaner</title>
-<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)">
+<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)"><script>window.WEB_VERSION="1.10"</script>
 <style>
 /* Layout: eine Spalte wie die To-do-Seite. Oben Tag und Woche, darunter Überblick, Aufgaben ohne Uhrzeit und die Zeitleiste.
    Einträge liegen als leicht durchsichtige Blöcke in der Farbe ihrer Kategorie auf der Zeitleiste. Rechts klappt die To-do-Liste heraus. */
@@ -389,6 +389,7 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
 #notif-set:not([hidden]), #upd-set:not([hidden]) { display: grid; gap: 8px; }
 /* Update: weiße 1 im roten Kreis am Zahnrad und am Knopf, Fenster in der Mitte */
 #set-btn, .upd-btn { position: relative; }
+.ver { font-size: 11px; color: var(--muted); text-align: center; padding-top: 2px; font-variant-numeric: tabular-nums; }
 .badge { position: absolute; right: -6px; bottom: -6px; min-width: 18px; height: 18px; padding: 0 6px 0 3px;   /* links weniger Abstand: die 1 wirkt sonst nach rechts verschoben */ border-radius: 999px; background: #E5484D; color: #fff; font: 700 11px/18px var(--font); text-align: center; box-shadow: 0 0 0 2px var(--bg); }
 .badge[hidden] { display: none; }
 .upd-btn .badge { right: 10px; bottom: auto; top: 50%; transform: translateY(-50%); box-shadow: none; }
@@ -462,6 +463,7 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
             </div>
             <span class="ov-label">Hilfe</span>
             <button class="soft-btn" data-tour-start>Tutorial starten</button>
+            <span class="ver" id="app-ver" hidden></span>
           </div>
         </div>
         <div>
@@ -1195,6 +1197,11 @@ document.addEventListener("click", e => { if (!e.target.closest(".settings")) se
 /* Updates (nur Android-App): beim Start im Hintergrund nachsehen; gibt es eins, steht eine rote 1 am Zahnrad und am Knopf */
 const app = window.AndroidApp;
 let upd = null, updAsked = false, updTimer = null;
+// Versionsnummer klein unten im Zahnrad: in der App aus der App, im Browser vom Bau eingesetzt
+{
+  const v = app ? app.versionName() : window.WEB_VERSION;
+  if (v) { $("#app-ver").textContent = `Version ${v}${app ? "" : " · Browser"}`; $("#app-ver").hidden = false; }
+}
 function updDialog(title, text, notes = [], canInstall = false) {
   $("#upd-h").textContent = title;
   $("#upd-p").textContent = text;
@@ -1784,7 +1791,7 @@ boot();
     hint.className = "nt-hint";
     hint.innerHTML = `<span class="ov-label">Benachrichtigungen</span>`
       + (ios ? `<p>Gibt es nur in der Android-App. Auf dem iPhone geht das leider nicht.</p>`
-             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner.apk">Android-App herunterladen</a>`);
+             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.10.apk">Android-App herunterladen</a>`);
     setPop.insertBefore(hint, setPop.querySelector("[data-tour-start]")?.previousElementSibling || null);
   }
 
@@ -1808,7 +1815,7 @@ boot();
     else if (android) how = `<p>Im Chrome-Menü <b>⋮</b> auf <b>„App installieren“</b> oder <b>„Zum Startbildschirm hinzufügen“</b> tippen.</p>`;
     else how = `<p>Öffne diesen Link auf dem Handy, auf dem iPhone in Safari, auf Android in Chrome. Dort zeigt dir dieser Knopf, wie es weitergeht.</p>`;
     pop.innerHTML = `<span class="ov-label">App installieren</span>${how}<p class="note">Danach startest du den Planer über das Icon. Deine Einträge bleiben auf diesem Gerät.</p>`
-      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
+      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.10.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
   };
   const open = show => { pop.hidden = !show; btn.setAttribute("aria-expanded", show); if (show) render(); };
 
