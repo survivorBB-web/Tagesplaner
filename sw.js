@@ -1,6 +1,6 @@
 // Hält die App offline bereit. Bei jedem Bau ändert build-web.ps1 die Version, dann holt sich das Handy die neuen Dateien.
 // Die Seite selbst kommt mit Internet immer frisch vom Server, ohne Internet aus dem Speicher.
-const CACHE = "tagesplaner-20261106135744";
+const CACHE = "tagesplaner-20261110150201";
 const FILES = ["./", "index.html", "manifest.webmanifest", "bricolage.woff2", "schibsted.woff2", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 // "reload": am Browser-Zwischenspeicher vorbei, sonst landet eine bis zu 10 Minuten alte Kopie im Offline-Speicher

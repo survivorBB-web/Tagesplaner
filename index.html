@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tagesplaner</title>
-<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)"><script>window.WEB_VERSION="1.11"</script>
+<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)"><script>window.WEB_VERSION="1.12"</script>
 <style>
 /* Layout: eine Spalte wie die To-do-Seite. Oben Tag und Woche, darunter Überblick, Aufgaben ohne Uhrzeit und die Zeitleiste.
    Einträge liegen als leicht durchsichtige Blöcke in der Farbe ihrer Kategorie auf der Zeitleiste. Rechts klappt die To-do-Liste heraus. */
@@ -28,6 +28,8 @@
   --ev-bl: .62; --ev-bc: .12;
   --font: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
   --display: "Bricolage Grotesque", "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+  /* Kleine Zahlen (Uhrzeiten, Dauer, Zähler) in der Systemschrift: deren 3, 5 und 6 sind auch klein eindeutig */
+  --num: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --hour: 52px;
   --gut: 52px;
   --row: 40px;
@@ -166,7 +168,7 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
   background-size: calc(100% - var(--gut)) 100%;
   cursor: copy;
 }
-.hl { position: absolute; left: 0; width: calc(var(--gut) - 8px); text-align: right; font-size: 11px; color: var(--muted); transform: translateY(-50%); font-variant-numeric: tabular-nums; pointer-events: none; }
+.hl { position: absolute; left: 0; width: calc(var(--gut) - 8px); text-align: right; font-size: 12px; color: var(--muted); transform: translateY(-50%); font-variant-numeric: tabular-nums; pointer-events: none; }
 .grid .ev {
   position: absolute; left: calc(var(--gut) + 2px + (100% - var(--gut) - 8px) * var(--x)); width: calc((100% - var(--gut) - 8px) * var(--w) - 3px);
   overflow: hidden; padding-top: 3px; padding-bottom: 3px; cursor: grab;
@@ -420,6 +422,7 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
 }
 /* Aufgaben-Fach: Kategorie statt Stichwort, Uhrzeit dahinter */
 .td .new select { min-width: 0; border: 0; background: transparent; font: inherit; color: var(--ink); padding: 10px 6px; border-radius: 8px; }
+.hl, .ev-meta, .ov-sub, .tin .inp, .inp.num, .ver, .td .when, .td .meta, .td .fold { font-family: var(--num); }
 .td .when { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; margin-left: 6px; white-space: nowrap; }
 
 /* Tutorial: abgedunkelter Hintergrund, Ring um die erklärte Stelle, Sprechblase mit Pfeil */
@@ -1200,7 +1203,7 @@ let upd = null, updAsked = false, updTimer = null;
 // Versionsnummer klein unten im Zahnrad: in der App aus der App, im Browser vom Bau eingesetzt
 {
   const v = app ? app.versionName() : window.WEB_VERSION;
-  if (v) { $("#app-ver").textContent = `Version ${v}${app ? "" : " · Browser"}`; $("#app-ver").hidden = false; }
+  if (v) { $("#app-ver").textContent = `Version ${v}${app ? "" : window.claude ? " · Artifact" : " · Browser"}`; $("#app-ver").hidden = false; }
 }
 function updDialog(title, text, notes = [], canInstall = false) {
   $("#upd-h").textContent = title;
@@ -1784,7 +1787,7 @@ boot();
     hint.className = "nt-hint";
     hint.innerHTML = `<span class="ov-label">Benachrichtigungen</span>`
       + (ios ? `<p>Gibt es nur in der Android-App. Auf dem iPhone geht das leider nicht.</p>`
-             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.11.apk">Android-App herunterladen</a>`);
+             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.12.apk">Android-App herunterladen</a>`);
     setPop.insertBefore(hint, setPop.querySelector("[data-tour-start]")?.previousElementSibling || null);
   }
 
@@ -1808,7 +1811,7 @@ boot();
     else if (android) how = `<p>Im Chrome-Menü <b>⋮</b> auf <b>„App installieren“</b> oder <b>„Zum Startbildschirm hinzufügen“</b> tippen.</p>`;
     else how = `<p>Öffne diesen Link auf dem Handy, auf dem iPhone in Safari, auf Android in Chrome. Dort zeigt dir dieser Knopf, wie es weitergeht.</p>`;
     pop.innerHTML = `<span class="ov-label">App installieren</span>${how}<p class="note">Danach startest du den Planer über das Icon. Deine Einträge bleiben auf diesem Gerät.</p>`
-      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.11.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
+      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.12.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
   };
   const open = show => { pop.hidden = !show; btn.setAttribute("aria-expanded", show); if (show) render(); };
 
