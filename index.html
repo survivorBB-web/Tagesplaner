@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tagesplaner</title>
-<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)"><script>window.WEB_VERSION="1.15"</script>
+<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)"><script>window.WEB_VERSION="1.16"</script>
 <style>
 /* Layout: eine Spalte wie die To-do-Seite. Oben Tag und Woche, darunter Überblick, Aufgaben ohne Uhrzeit und die Zeitleiste.
    Einträge liegen als leicht durchsichtige Blöcke in der Farbe ihrer Kategorie auf der Zeitleiste. Rechts klappt die To-do-Liste heraus. */
@@ -94,9 +94,7 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
 .wd.sel b { background: var(--ink); color: var(--bg); }
 .wd.sel.today b { background: var(--accent); color: var(--on-accent); }
 /* Wochenpfeile links und rechts der Tage */
-.week-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 28px; gap: 4px; }
-.wk-arrow { display: grid; place-items: center; border-radius: 10px; color: var(--muted); }
-.wk-arrow:hover { background: var(--hover); color: var(--ink); }
+.week-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px; gap: 4px; align-items: center; }
 
 /* Kalender neben der Überschrift */
 .title-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -530,9 +528,9 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
       </div>
     </div>
     <div class="week-row">
-      <button class="wk-arrow" id="wk-prev" aria-label="Vorherige Woche"><svg class="ico" viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></button>
+      <button class="icon-btn" id="wk-prev" aria-label="Vorherige Woche"><svg class="ico" viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></button>
       <nav class="week" id="week" aria-label="Woche"></nav>
-      <button class="wk-arrow" id="wk-next" aria-label="Nächste Woche"><svg class="ico" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg></button>
+      <button class="icon-btn" id="wk-next" aria-label="Nächste Woche"><svg class="ico" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg></button>
     </div>
   </header>
 
@@ -946,7 +944,7 @@ function renderDay() {
 }
 
 function renderWeek() {
-  $("#week").innerHTML = weekOf(cur).map((k, i) => `<button class="wd${k === cur ? " sel" : ""}${k === todayKey() ? " today" : ""}" data-day="${k}" aria-current="${k === cur ? "date" : "false"}"${paint(k)}>${["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"][i]}<b>${fromKey(k).getDate()}</b></button>`).join("");
+  $("#week").innerHTML = weekOf(cur).map((k, i) => `<button class="wd${k === cur ? " sel" : ""}${k === todayKey() ? " today" : ""}" data-day="${k}" aria-current="${k === cur ? "date" : "false"}">${["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"][i]}<b>${fromKey(k).getDate()}</b></button>`).join("");
 }
 
 /* Kalender: Monat zeigen, Klick auf einen Tag springt dorthin */
@@ -975,7 +973,7 @@ function calPop(open) {
   if (r.left < 8) p.style.translate = `${8 - r.left}px 0`;   // nie links aus dem Bild ragen
 }
 
-/* Nur im Artifact: Tage mit Einträgen in den Farben ihrer Kategorien, beim Darüberfahren eine Kurzfassung.
+/* Nur im Artifact: Im Kalender sind Tage mit Einträgen in den Farben ihrer Kategorien, beim Darüberfahren eine Kurzfassung.
    Alle Tage kommen über ein einziges Abo der Sammlung „tage“; der offene Tag zählt mit seinem aktuellen Stand. */
 let marks = null;   // Map Tag -> gespeicherter Stand, nur im Artifact
 function dayList(k) {
@@ -1014,7 +1012,6 @@ addEventListener("scroll", hidePeek, true);
 function watchMarks() {
   db.collection("tage").onSnapshot(snap => {
     marks = new Map(snap.docs.map(d => [d.id, d.data()]));
-    renderWeek();
     if (!$("#cal-pop").hidden) renderCal();
   }, () => {});
 }
@@ -2113,7 +2110,7 @@ boot();
     hint.className = "nt-hint";
     hint.innerHTML = `<span class="ov-label">Benachrichtigungen</span>`
       + (ios ? `<p>Gibt es nur in der Android-App. Auf dem iPhone geht das leider nicht.</p>`
-             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.15.apk">Android-App herunterladen</a>`);
+             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.16.apk">Android-App herunterladen</a>`);
     setPop.insertBefore(hint, setPop.querySelector("[data-tour-start]")?.previousElementSibling || null);
   }
 
@@ -2137,7 +2134,7 @@ boot();
     else if (android) how = `<p>Im Chrome-Menü <b>⋮</b> auf <b>„App installieren“</b> oder <b>„Zum Startbildschirm hinzufügen“</b> tippen.</p>`;
     else how = `<p>Öffne diesen Link auf dem Handy, auf dem iPhone in Safari, auf Android in Chrome. Dort zeigt dir dieser Knopf, wie es weitergeht.</p>`;
     pop.innerHTML = `<span class="ov-label">App installieren</span>${how}<p class="note">Danach startest du den Planer über das Icon. Deine Einträge bleiben auf diesem Gerät.</p>`
-      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.15.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
+      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.16.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
   };
   const open = show => { pop.hidden = !show; btn.setAttribute("aria-expanded", show); if (show) render(); };
 
