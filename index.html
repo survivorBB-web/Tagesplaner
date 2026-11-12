@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tagesplaner</title>
-<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)"><script>window.WEB_VERSION="1.14"</script>
+<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)"><script>window.WEB_VERSION="1.15"</script>
 <style>
 /* Layout: eine Spalte wie die To-do-Seite. Oben Tag und Woche, darunter Überblick, Aufgaben ohne Uhrzeit und die Zeitleiste.
    Einträge liegen als leicht durchsichtige Blöcke in der Farbe ihrer Kategorie auf der Zeitleiste. Rechts klappt die To-do-Liste heraus. */
@@ -93,6 +93,41 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
 .wd.today b { color: var(--accent); }
 .wd.sel b { background: var(--ink); color: var(--bg); }
 .wd.sel.today b { background: var(--accent); color: var(--on-accent); }
+/* Wochenpfeile links und rechts der Tage */
+.week-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 28px; gap: 4px; }
+.wk-arrow { display: grid; place-items: center; border-radius: 10px; color: var(--muted); }
+.wk-arrow:hover { background: var(--hover); color: var(--ink); }
+
+/* Kalender neben der Überschrift */
+.title-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cal-wrap { position: relative; flex: none; }
+.cal-pop { left: auto; right: 0; width: 288px; max-width: calc(100vw - 32px); gap: 6px; }
+.cal-head { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; }
+.cal-head b { font: 650 16px/1.2 var(--display); text-align: center; letter-spacing: -0.01em; }
+.cal-head button { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); }
+.cal-head button:hover { background: var(--hover); color: var(--ink); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-grid > span { font-size: 11px; color: var(--muted); text-align: center; padding: 4px 0 2px; font-weight: 500; }
+.cd { height: 36px; border-radius: 8px; display: grid; place-items: center; font: 500 14px/1 var(--num); font-variant-numeric: tabular-nums; }
+.cd:hover { box-shadow: inset 0 0 0 1px var(--line); }
+.cd:not([style]):hover { background: var(--hover); box-shadow: none; }
+.cd.out { color: var(--muted); opacity: .7; }
+.cd.today { color: var(--accent); font-weight: 700; }
+.cd.sel { box-shadow: inset 0 0 0 2px var(--ink); font-weight: 700; }
+.cd.sel:hover { box-shadow: inset 0 0 0 2px var(--ink); }
+
+/* Artifact: Kurzfassung eines Tages beim Darüberfahren */
+.peek { position: fixed; z-index: 40; width: max-content; max-width: min(280px, calc(100vw - 16px)); padding: 10px 12px; display: grid; gap: 6px;
+  background: var(--surface); border: 1px solid var(--hair); border-radius: 10px; box-shadow: 0 6px 20px rgb(0 0 0 / .14); pointer-events: none; font-size: 13px; }
+.peek[hidden] { display: none; }
+.peek h4 { margin: 0; font: 650 13px/1.3 var(--font); }
+.peek ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.peek li { display: grid; grid-template-columns: 8px 40px minmax(0, 1fr); align-items: baseline; gap: 6px; }
+.peek li i { width: 8px; height: 8px; border-radius: 50%; align-self: center; background: oklch(var(--ev-bl) calc(var(--ev-bc) * var(--c, 1)) var(--h, 250)); }
+.peek li small { color: var(--muted); font: 12px var(--num); font-variant-numeric: tabular-nums; }
+.peek li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.peek li.done span { text-decoration: line-through; color: var(--muted); }
+.peek .more { color: var(--muted); font-size: 12px; }
 
 /* Überblick */
 .overview { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 1px; background: var(--hair); border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; }
@@ -477,7 +512,13 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
           </div>
         </div>
         <div>
-          <h1 id="day-title">Tagesplaner</h1>
+          <div class="title-line">
+            <h1 id="day-title">Tagesplaner</h1>
+            <div class="cal-wrap">
+              <button class="icon-btn" id="cal-btn" aria-label="Kalender: zu einem Tag springen" aria-expanded="false" aria-controls="cal-pop"><svg class="ico" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10.5" rx="2"/><path d="M2.5 6.5h11M5.5 1.8v2.4M10.5 1.8v2.4"/><path d="M5.2 9.2h.1M8 9.2h.1M10.8 9.2h.1M5.2 11.4h.1M8 11.4h.1" stroke-width="2.2"/></svg></button>
+              <div class="pop cal-pop" id="cal-pop" role="dialog" aria-label="Kalender" hidden></div>
+            </div>
+          </div>
           <div class="sub"><span id="day-sub"></span><span id="status" class="status busy">Lädt</span></div>
         </div>
       </div>
@@ -488,7 +529,11 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
         <button class="soft-btn" id="cats-btn">Kategorien</button>
       </div>
     </div>
-    <nav class="week" id="week" aria-label="Woche"></nav>
+    <div class="week-row">
+      <button class="wk-arrow" id="wk-prev" aria-label="Vorherige Woche"><svg class="ico" viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></button>
+      <nav class="week" id="week" aria-label="Woche"></nav>
+      <button class="wk-arrow" id="wk-next" aria-label="Nächste Woche"><svg class="ico" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg></button>
+    </div>
   </header>
 
   <section class="overview" id="overview" aria-live="polite"></section>
@@ -552,6 +597,7 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
     </div>
   </div>
 </aside>
+<div class="peek" id="peek" role="tooltip" hidden></div>
 <div class="tabs">
   <button class="todo-tab" id="todo-tab" aria-controls="td" aria-expanded="false"><svg class="ico" viewBox="0 0 16 16"><path d="M3 4.5h1M6.5 4.5H13M3 8h1M6.5 8H13M3 11.5h1M6.5 11.5H13"/></svg><span>To-do</span><b id="todo-open" hidden></b></button>
   <button class="todo-tab" id="af-tab" aria-controls="af" aria-expanded="false"><svg class="ico" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10.5" rx="2"/><path d="M2.5 6.5h11M5.5 1.8v2.4M10.5 1.8v2.4"/></svg><span>Aufgaben</span><b id="af-open" hidden></b></button>
@@ -869,7 +915,8 @@ function renderDay() {
   $("#day-title").textContent = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long" }).format(d);
   const rel = isToday ? "Heute" : cur === addDays(todayKey(), 1) ? "Morgen" : cur === addDays(todayKey(), -1) ? "Gestern" : `KW ${isoWeek(d)}`;
   $("#day-sub").textContent = `${rel} · ${d.getFullYear()}`;
-  $("#week").innerHTML = weekOf(cur).map((k, i) => `<button class="wd${k === cur ? " sel" : ""}${k === todayKey() ? " today" : ""}" data-day="${k}" aria-current="${k === cur ? "date" : "false"}">${["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"][i]}<b>${fromKey(k).getDate()}</b></button>`).join("");
+  renderWeek();
+  if (!$("#cal-pop").hidden) renderCal();
 
   const ready = day.ready;
   for (const id of ["#quick-text", "#quick-btn"]) $(id).disabled = !ready;
@@ -896,6 +943,80 @@ function renderDay() {
   $("#grid").innerHTML = html;
   renderOverview();
   afTree?.refresh();
+}
+
+function renderWeek() {
+  $("#week").innerHTML = weekOf(cur).map((k, i) => `<button class="wd${k === cur ? " sel" : ""}${k === todayKey() ? " today" : ""}" data-day="${k}" aria-current="${k === cur ? "date" : "false"}"${paint(k)}>${["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"][i]}<b>${fromKey(k).getDate()}</b></button>`).join("");
+}
+
+/* Kalender: Monat zeigen, Klick auf einen Tag springt dorthin */
+let calMonth = null;   // erster Tag des gezeigten Monats
+function renderCal() {
+  const first = fromKey(calMonth), start = addDays(calMonth, -((first.getDay() + 6) % 7));
+  const long = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long" });
+  const days = Array.from({ length: 42 }, (_, i) => addDays(start, i)).map(k => {
+    const d = fromKey(k);
+    return `<button class="cd${d.getMonth() !== first.getMonth() ? " out" : ""}${k === cur ? " sel" : ""}${k === todayKey() ? " today" : ""}" data-cal-day="${k}" aria-label="${long.format(d)}"${k === cur ? ' aria-current="date"' : ""}${paint(k)}>${d.getDate()}</button>`;
+  }).join("");
+  $("#cal-pop").innerHTML = `<div class="cal-head"><button data-cal="-1" aria-label="Vorheriger Monat"><svg class="ico" viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></button>
+    <b>${new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }).format(first)}</b>
+    <button data-cal="1" aria-label="Nächster Monat"><svg class="ico" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg></button></div>
+    <div class="cal-grid">${["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map(w => `<span>${w}</span>`).join("")}${days}</div>`;
+}
+function calPop(open) {
+  const p = $("#cal-pop");
+  p.hidden = !open; $("#cal-btn").setAttribute("aria-expanded", open);
+  if (!open) return hidePeek();
+  setPop(false);
+  calMonth = cur.slice(0, 8) + "01";
+  renderCal();
+  p.style.translate = "";
+  const r = p.getBoundingClientRect();
+  if (r.left < 8) p.style.translate = `${8 - r.left}px 0`;   // nie links aus dem Bild ragen
+}
+
+/* Nur im Artifact: Tage mit Einträgen in den Farben ihrer Kategorien, beim Darüberfahren eine Kurzfassung.
+   Alle Tage kommen über ein einziges Abo der Sammlung „tage“; der offene Tag zählt mit seinem aktuellen Stand. */
+let marks = null;   // Map Tag -> gespeicherter Stand, nur im Artifact
+function dayList(k) {
+  if (!marks) return [];
+  const d = clone(k === cur && day?.ready ? day.data : marks.get(k) || { entries: [] });
+  if (series?.ready) materializeInto(d, k);   // Wiederholungen zeigen, auch wenn der Tag noch nie offen war
+  return (d.entries || []).slice().sort((a, b) => (a.start ?? 1e4) - (b.start ?? 1e4));
+}
+function paint(k) {
+  const list = dayList(k);
+  if (!list.length) return "";
+  const cols = [...new Set(list.map(e => catOf(e)?.hue ?? "n"))].slice(0, 4)
+    .map(h => h === "n" ? "oklch(var(--ev-fl) calc(var(--ev-fc) * .2) 250 / calc(var(--ev-fa) + .08))" : `oklch(var(--ev-fl) var(--ev-fc) ${h} / calc(var(--ev-fa) + .08))`);
+  const bg = cols.length === 1 ? cols[0] : `linear-gradient(90deg, ${cols.map((c, i) => `${c} ${i / cols.length * 100}% ${(i + 1) / cols.length * 100}%`).join(", ")})`;
+  return ` style="background:${bg}" data-day-peek="${k}"`;
+}
+function showPeek(el) {
+  const k = el.dataset.dayPeek, list = dayList(k), p = $("#peek");
+  if (!list.length) return hidePeek();
+  p.innerHTML = `<h4>${esc(new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long" }).format(fromKey(k)))}</h4><ul>${list.slice(0, 6).map(e => {
+    const c = catOf(e);
+    return `<li class="${e.done ? "done" : ""}"><i style="${c ? `--h:${c.hue}` : "--c:.2"}"></i><small>${e.start != null ? hm(e.start) : ""}</small><span>${esc(e.title || "Ohne Titel")}</span></li>`;
+  }).join("")}</ul>${list.length > 6 ? `<span class="more">und ${list.length - 6} weitere</span>` : ""}`;
+  p.hidden = false;
+  const r = el.getBoundingClientRect(), w = p.offsetWidth, h = p.offsetHeight;
+  const y = r.bottom + 6 + h <= innerHeight - 8 ? r.bottom + 6 : r.top - 6 - h;
+  Object.assign(p.style, { left: `${clamp(r.left + r.width / 2 - w / 2, 8, innerWidth - w - 8)}px`, top: `${Math.max(8, y)}px` });
+}
+function hidePeek() { $("#peek").hidden = true; }
+document.addEventListener("pointerover", e => {
+  if (!marks || e.pointerType !== "mouse") return;
+  const el = e.target.closest("[data-day-peek]");
+  el ? showPeek(el) : hidePeek();
+});
+addEventListener("scroll", hidePeek, true);
+function watchMarks() {
+  db.collection("tage").onSnapshot(snap => {
+    marks = new Map(snap.docs.map(d => [d.id, d.data()]));
+    renderWeek();
+    if (!$("#cal-pop").hidden) renderCal();
+  }, () => {});
 }
 
 function isoWeek(d) {
@@ -1026,6 +1147,20 @@ $("#overview").addEventListener("click", e => { const b = e.target.closest("[dat
 $("#week").addEventListener("click", e => { const b = e.target.closest("[data-day]"); if (b && b.dataset.day !== cur) openDay(b.dataset.day); });
 $("#prev").onclick = () => openDay(addDays(cur, -1));
 $("#next").onclick = () => openDay(addDays(cur, 1));
+$("#wk-prev").onclick = () => openDay(addDays(cur, -7));
+$("#wk-next").onclick = () => openDay(addDays(cur, 7));
+$("#cal-btn").onclick = e => { e.stopPropagation(); calPop($("#cal-pop").hidden); };
+$("#cal-pop").addEventListener("click", e => {
+  e.stopPropagation();   // der Inhalt wird neu gezeichnet; sonst hielte der Klick ihn für „daneben“
+  const m = e.target.closest("[data-cal]");
+  if (m) { const d = fromKey(calMonth); d.setMonth(d.getMonth() + +m.dataset.cal); calMonth = dayKey(d); renderCal(); return; }
+  const b = e.target.closest("[data-cal-day]");
+  if (!b) return;
+  calPop(false);
+  if (b.dataset.calDay !== cur) openDay(b.dataset.calDay);
+  $("#cal-btn").focus({ preventScroll: true });
+});
+document.addEventListener("click", e => { if (!e.target.closest(".cal-wrap")) calPop(false); });
 $("#today").onclick = () => { if (cur !== todayKey()) openDay(todayKey()); else scrollToNow(); };
 
 /* Timer */
@@ -1361,7 +1496,7 @@ new MutationObserver(() => {
 }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 applyTheme();
 const setPop = (open) => { $("#set-pop").hidden = !open; $("#set-btn").setAttribute("aria-expanded", open); };
-$("#set-btn").onclick = e => { e.stopPropagation(); setPop($("#set-pop").hidden); };
+$("#set-btn").onclick = e => { e.stopPropagation(); calPop(false); setPop($("#set-pop").hidden); };
 $("#set-pop").addEventListener("click", e => {
   if (e.target.closest("[data-tour-start]")) { tourShow(0); return; }
   const no = e.target.closest("[data-notif-open]");
@@ -1458,6 +1593,7 @@ if (native) {
 
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && !$("#set-pop").hidden) { setPop(false); return; }
+  if (e.key === "Escape" && !$("#cal-pop").hidden) { calPop(false); $("#cal-btn").focus(); return; }
   if (e.key !== "Escape" || e.target.closest?.("#td-tree, #af-tree")) return;
   if (side) closeSide(); else if ($("#td").classList.contains("open")) closeTodo(); else if (afOpen()) closeAf();
 });
@@ -1859,7 +1995,8 @@ const TOUR = [
   ["#untimed [data-ev], #grid [data-ev]|.untimed", "Abhaken und öffnen", "Tippe aufs Kästchen, wenn du fertig bist. Tippe auf den Eintrag, um ihn zu ändern. Dort gibt es auch Schritte und einen Timer."],
   ["#timeline", "Zeitleiste", "Das ist dein Tag nach Uhrzeit. Tippe auf eine freie Stelle, um dort einen Termin anzulegen."],
   ["#overview", "Überblick", "Hier siehst du, was als Nächstes kommt und wie viel du schon geschafft hast."],
-  ["#week", "Woche", "Tippe auf einen Tag, um ihn anzusehen."],
+  [".week-row", "Woche", "Tippe auf einen Tag, um ihn anzusehen. Mit den Pfeilen links und rechts gehst du eine Woche vor oder zurück."],
+  ["#cal-btn", "Kalender", "Hier siehst du den ganzen Monat und springst zu jedem Tag."],
   [".nav", "Tage und Kategorien", "Mit den Pfeilen gehst du einen Tag vor oder zurück. „Heute“ bringt dich zu heute. Bei „Kategorien“ gibst du deinen Einträgen Farben."],
   ["#todo-tab", "To-do", "Eine Liste für alles, was noch keinen festen Tag hat."],
   ["#af-tab", "Aufgaben", "Alle Aufgaben des Tages als Liste. Hier siehst du auch ihre Schritte. Was du hier einträgst, steht auch im Tag."],
@@ -1927,6 +2064,7 @@ window.appBack = () => {
   if ($("#upd-dlg").open) { $("#upd-dlg").close(); return true; }
   if (tour) { tourEnd(); return true; }
   if (!$("#set-pop").hidden) { setPop(false); return true; }
+  if (!$("#cal-pop").hidden) { calPop(false); return true; }
   if (side) { closeSide(); return true; }
   if ($("#td").classList.contains("open")) { closeTodo(); return true; }
   if (afOpen()) { closeAf(); return true; }
@@ -1938,6 +2076,7 @@ async function boot() {
   db = await window.claude?.use?.("db").catch(() => null);
   // als installierte Web-App (Startbildschirm) oder Android-App: Daten bleiben auf dem Gerät
   const installed = native || matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (db) watchMarks();
   if (!db) installed ? status("Auf diesem Gerät gespeichert") : status("Nur in diesem Browser gespeichert", "warn");
   if (!db && !native) navigator.storage?.persist?.().catch(() => {});   // Browser bitten, die Daten nie von selbst zu löschen
   cats = syncDoc("planer/kategorien", { empty: { list: [] }, busy: planBusy, changed: () => { renderDay(); if (side) renderSide(); } });
@@ -1974,7 +2113,7 @@ boot();
     hint.className = "nt-hint";
     hint.innerHTML = `<span class="ov-label">Benachrichtigungen</span>`
       + (ios ? `<p>Gibt es nur in der Android-App. Auf dem iPhone geht das leider nicht.</p>`
-             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.14.apk">Android-App herunterladen</a>`);
+             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.15.apk">Android-App herunterladen</a>`);
     setPop.insertBefore(hint, setPop.querySelector("[data-tour-start]")?.previousElementSibling || null);
   }
 
@@ -1998,7 +2137,7 @@ boot();
     else if (android) how = `<p>Im Chrome-Menü <b>⋮</b> auf <b>„App installieren“</b> oder <b>„Zum Startbildschirm hinzufügen“</b> tippen.</p>`;
     else how = `<p>Öffne diesen Link auf dem Handy, auf dem iPhone in Safari, auf Android in Chrome. Dort zeigt dir dieser Knopf, wie es weitergeht.</p>`;
     pop.innerHTML = `<span class="ov-label">App installieren</span>${how}<p class="note">Danach startest du den Planer über das Icon. Deine Einträge bleiben auf diesem Gerät.</p>`
-      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.14.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
+      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.15.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
   };
   const open = show => { pop.hidden = !show; btn.setAttribute("aria-expanded", show); if (show) render(); };
 
