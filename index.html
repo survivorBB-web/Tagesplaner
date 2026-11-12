@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tagesplaner</title>
-<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)"><script>window.WEB_VERSION="1.13"</script>
+<style>@font-face{font-family:"Bricolage Grotesque";src:url(bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}@font-face{font-family:"Schibsted Grotesk";src:url(schibsted.woff2) format("woff2");font-weight:400 900;font-display:swap}</style><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Tagesplaner"><meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)"><script>window.WEB_VERSION="1.14"</script>
 <style>
 /* Layout: eine Spalte wie die To-do-Seite. Oben Tag und Woche, darunter Überblick, Aufgaben ohne Uhrzeit und die Zeitleiste.
    Einträge liegen als leicht durchsichtige Blöcke in der Farbe ihrer Kategorie auf der Zeitleiste. Rechts klappt die To-do-Liste heraus. */
@@ -202,6 +202,10 @@ h1 { font: 750 clamp(26px, 5.4vw, 38px)/1.05 var(--display); letter-spacing: -0.
 .inp { width: 100%; min-width: 0; height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .inp:focus { outline: none; border-color: var(--accent); }
 .inp.big { font-size: 17px; font-weight: 600; height: 44px; }
+.inp.note { height: auto; min-height: 60px; padding: 8px 10px; line-height: 1.45; resize: none; font: inherit; font-size: 14px; }
+.ev-note { display: inline-flex; align-items: center; }
+.ev-note svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 1.5; fill: none; stroke-linecap: round; }
+.td .note-line { flex-basis: 100%; font-size: 13px; color: var(--muted); line-height: 1.4; white-space: pre-line; overflow-wrap: anywhere; }
 .seg { display: inline-grid; grid-auto-flow: column; background: var(--hover); border-radius: 9px; padding: 3px; gap: 2px; justify-self: start; }
 .seg button { padding: 6px 14px; border-radius: 7px; font-size: 14px; font-weight: 500; color: var(--muted); }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / .08); }
@@ -638,6 +642,7 @@ const store = {
 };
 const CHECK = '<svg viewBox="0 0 12 12"><path d="M2 6.5 4.8 9 10 3"/></svg>';
 const PIN = '<svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.6"/><path d="M6 6l1.6 1"/><path class="mh" d="M6 6V3.3"/></svg>';
+const NOTE = '<svg viewBox="0 0 12 12"><path d="M3 2h4.5L9.5 4v6H3zM4.5 5.5h3M4.5 7.5h3"/></svg>';
 const REPEAT = '<svg viewBox="0 0 12 12"><path d="M2.6 5.2A3.6 3.6 0 0 1 8.9 3.4L10 4.6M9.4 6.8A3.6 3.6 0 0 1 3.1 8.6L2 7.4M10 2v2.6H7.4M2 10V7.4h2.6"/></svg>';
 const BELL = '<svg viewBox="0 0 12 12"><path d="M3 8.5V5.6a3 3 0 0 1 6 0v2.9l1 1H2zM5 10.6h2"/></svg>';
 const X = '<svg class="ico" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
@@ -724,7 +729,7 @@ const colorAttr = c => c ? `style="--h:${c.hue}"` : "";
 
 function typing() {
   const a = document.activeElement;
-  return !!a && $("#side").contains(a) && a.matches("input:not([type=checkbox]), select");
+  return !!a && $("#side").contains(a) && a.matches("input:not([type=checkbox]), select, textarea");
 }
 const planBusy = () => !!drag || typing();
 
@@ -748,12 +753,12 @@ function commitDay() { entries().forEach(syncDone); syncSeries(); day.save(); re
    damit Abhaken, Schritte, Timer und Erinnerungen dort wie bei jedem Eintrag funktionieren.
    Gelöschte Kopien merkt sich der Tag in skip, damit sie nicht wiederkommen. */
 const seriesOf = e => e?.seriesId ? (series?.data.list || []).find(s => s.id === e.seriesId) || null : null;
-const tplOf = e => ({ title: e.title, kind: e.kind, start: e.start, dur: e.dur, cat: e.cat, notify: e.notify ? clone(e.notify) : null, steps: (e.steps || []).map(s => ({ id: s.id, text: s.text })) });
+const tplOf = e => ({ title: e.title, note: e.note || "", kind: e.kind, start: e.start, dur: e.dur, cat: e.cat, notify: e.notify ? clone(e.notify) : null, steps: (e.steps || []).map(s => ({ id: s.id, text: s.text })) });
 const ruleText = r => r.t === "tage" ? `alle ${r.n} Tage` : { tag: "täglich", woche: "wöchentlich", monat: "monatlich" }[r.t] || "";
 const fmtDay = k => new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "numeric", month: "short" }).format(fromKey(k));
 function copyOf(s, k) {
   const t = s.tpl;
-  return { id: s.id + "@" + k, title: t.title, kind: t.kind, start: t.start, dur: t.dur, cat: t.cat, notify: t.notify ? clone(t.notify) : null,
+  return { id: s.id + "@" + k, title: t.title, note: t.note || "", kind: t.kind, start: t.start, dur: t.dur, cat: t.cat, notify: t.notify ? clone(t.notify) : null,
     done: false, steps: (t.steps || []).map(x => ({ id: x.id, text: x.text, done: false })), timer: null, seriesId: s.id };
 }
 function materializeInto(d, k) {
@@ -811,7 +816,7 @@ function syncSeries() {
         let ch = false;
         for (const c of d.entries || []) {
           if (c.seriesId !== s.id || c.seriesMaster || c.seriesEdited) continue;
-          Object.assign(c, { title: t.title, kind: t.kind, start: t.start, dur: t.dur, cat: t.cat, notify: t.notify ? clone(t.notify) : null });
+          Object.assign(c, { title: t.title, note: t.note || "", kind: t.kind, start: t.start, dur: t.dur, cat: t.cat, notify: t.notify ? clone(t.notify) : null });
           c.steps = t.steps.map(x => ({ id: x.id, text: x.text, done: !!(c.steps || []).find(y => y.id === x.id)?.done }));
           ch = true;
         }
@@ -842,7 +847,8 @@ async function moveEntry(e, k) {
 const notifyAt = e => !e.notify?.on ? null : e.notify.mode === "timer" && e.start != null ? e.start - e.notify.before : e.notify.at;
 function evInner(e, now, simple) {
   const at = native ? notifyAt(e) : null;
-  const bell = at != null && at >= 0 ? `<span class="nt-bell">${BELL}${hm(at)}</span>` : "";
+  const bell = (at != null && at >= 0 ? `<span class="nt-bell">${BELL}${hm(at)}</span>` : "")
+    + (e.note?.trim() ? `<span class="ev-note" title="${esc(e.note.trim().slice(0, 120))}">${NOTE}</span>` : "");   // kleines Zeichen: Eintrag hat eine Notiz
   // Aufgaben ohne Uhrzeit: nur Name (und Erinnerung), alles Weitere im Eintrag oder im Aufgaben-Fach
   if (simple) return `<button class="ev-check" data-act="check" role="checkbox" aria-checked="${!!e.done}" aria-label="Erledigt">${CHECK}</button>
     <div class="ev-main"><span class="ev-title">${esc(e.title || "Ohne Titel")}</span>${bell ? `<span class="ev-meta">${bell}</span>` : ""}</div>`;
@@ -1103,6 +1109,7 @@ function renderSide() {
   el.innerHTML = `<div class="panel-head"><h2>${e.kind === "termin" ? "Termin" : "Aufgabe"}</h2><button class="icon-btn" data-close="side" aria-label="Schließen">${X}</button></div>
     <div class="panel-body">
       <div class="field"><label for="ed-title">Titel</label><input class="inp big" id="ed-title" value="${esc(e.title)}" placeholder="Was steht an?" autocomplete="off"></div>
+      <div class="field"><label for="ed-note">Notiz</label><textarea class="inp note" id="ed-note" rows="2" placeholder="Details für dich, zum Beispiel Adresse, Raum oder was du mitnehmen willst">${esc(e.note || "")}</textarea></div>
       <div class="seg" role="group" aria-label="Art"><button data-kind="aufgabe" aria-pressed="${e.kind !== "termin"}">Aufgabe</button><button data-kind="termin" aria-pressed="${e.kind === "termin"}">Termin</button></div>
       <div class="field">
         <span class="lbl">Zeit</span>
@@ -1141,6 +1148,7 @@ function renderSide() {
       </div>
     </div>
     <div class="panel-foot"><button class="danger-btn" data-del>Löschen</button><button class="btn" data-close="side">Fertig</button></div>`;
+  fitNote($("#ed-note"));
 }
 
 $("#side").addEventListener("click", ev => {
@@ -1219,6 +1227,8 @@ function endSeriesHere(e) {
   clearCopies(s.id, k);
   toast("Serie beendet", () => { s.until = old; series.save(); aheadLocal(); renderDay(); });
 }
+// Notizfeld wächst mit dem Text, höchstens bis 10 Zeilen
+function fitNote(t) { t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 240) + "px"; }
 /* Uhrzeit zum Eintippen: nach zwei Ziffern oder Enter springt der Cursor hinter den Doppelpunkt */
 function timeInput(name, m) {
   return `<span class="tin" data-tin="${name}"><input class="inp tin-h" inputmode="numeric" enterkeyhint="next" maxlength="2" value="${pad(Math.floor(m / 60))}" aria-label="Stunden"><b>:</b><input class="inp tin-m" inputmode="numeric" enterkeyhint="done" maxlength="2" value="${pad(m % 60)}" aria-label="Minuten"></span>`;
@@ -1273,6 +1283,7 @@ $("#side").addEventListener("input", ev => {
   const e = findEntry(side?.id);
   if (!e) return;
   if (t.id === "ed-title") { e.title = t.value; if (e.seriesId && !e.seriesMaster) e.seriesEdited = true; day.save(); renderDay(); }
+  if (t.id === "ed-note") { e.note = t.value; fitNote(t); if (e.seriesId && !e.seriesMaster) e.seriesEdited = true; day.save(); renderDay(); }
 });
 $("#side").addEventListener("change", ev => {
   const t = ev.target, e = findEntry(side?.id);
@@ -1536,7 +1547,7 @@ const seriesGrave = new Map();   // Serien, die mit ihrem Original im Fach gelö
 // Nur Aufgaben stehen im Fach; Termine bleiben unberührt im Tag
 const isTask = e => e.kind !== "termin";
 function fromDay() {
-  return normalize(entries().filter(isTask).map(e => ({ id: e.id, text: e.title, done: !!e.done, cat: e.cat, start: e.start, dur: e.dur,
+  return normalize(entries().filter(isTask).map(e => ({ id: e.id, text: e.title, note: e.note || "", done: !!e.done, cat: e.cat, start: e.start, dur: e.dur,
     children: (e.steps || []).map(s => ({ id: s.id, text: s.text, done: !!s.done, children: [] })) })));
 }
 function toDay() {
@@ -1582,6 +1593,7 @@ function nodeHTML(n, depth) {
         ${!linked && depth === 0 && n.tag ? `<span class="tag" style="--h:${hue(n.tag)}" title="${n.tagAuto ? "Stichwort automatisch gewählt" : "Stichwort"}">${esc(n.tag)}</span>` : ""}
         ${c ? `<span class="tag" style="--h:${c.hue}" title="Kategorie">${esc(c.name)}</span>` : ""}
         <span class="text">${esc(n.text)}</span>${linked && depth === 0 && n.start != null ? `<span class="when">${hm(n.start)}–${hm(Math.min(n.start + n.dur, 1440))}</span>` : ""}
+        ${linked && depth === 0 && n.note ? `<span class="note-line">${esc(n.note)}</span>` : ""}
       </div>
       ${kids ? `<button class="fold" data-act="fold" aria-expanded="${open}" aria-label="${n.children.length} Unterpunkte, ${countDone(n)} erledigt">${countDone(n)}/${n.children.length}${ICON.chev}</button>` : ""}
       <span class="tools">
@@ -1962,7 +1974,7 @@ boot();
     hint.className = "nt-hint";
     hint.innerHTML = `<span class="ov-label">Benachrichtigungen</span>`
       + (ios ? `<p>Gibt es nur in der Android-App. Auf dem iPhone geht das leider nicht.</p>`
-             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.13.apk">Android-App herunterladen</a>`);
+             : `<p>Gibt es nur in der Android-App.</p><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.14.apk">Android-App herunterladen</a>`);
     setPop.insertBefore(hint, setPop.querySelector("[data-tour-start]")?.previousElementSibling || null);
   }
 
@@ -1986,7 +1998,7 @@ boot();
     else if (android) how = `<p>Im Chrome-Menü <b>⋮</b> auf <b>„App installieren“</b> oder <b>„Zum Startbildschirm hinzufügen“</b> tippen.</p>`;
     else how = `<p>Öffne diesen Link auf dem Handy, auf dem iPhone in Safari, auf Android in Chrome. Dort zeigt dir dieser Knopf, wie es weitergeht.</p>`;
     pop.innerHTML = `<span class="ov-label">App installieren</span>${how}<p class="note">Danach startest du den Planer über das Icon. Deine Einträge bleiben auf diesem Gerät.</p>`
-      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.13.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
+      + (ios ? "" : `<hr><span class="ov-label">Android-App als Datei</span><a class="link-btn" href="https://github.com/survivorBB-web/Tagesplaner/raw/main/Tagesplaner-1.14.apk">Tagesplaner.apk herunterladen</a><p class="note">Android fragt beim Öffnen, ob du Apps aus dieser Quelle erlauben willst.</p>`);
   };
   const open = show => { pop.hidden = !show; btn.setAttribute("aria-expanded", show); if (show) render(); };
 
